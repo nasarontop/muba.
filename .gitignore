@@ -1,0 +1,18 @@
+# Node
+backend/node_modules/
+backend/package-lock.json
+
+# Base de datos local (se regenera sola en Railway)
+backend/db.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ENV
+.env
+.env.local

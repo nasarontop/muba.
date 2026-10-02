@@ -18,6 +18,16 @@
     }
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- API client: detecta Railway automáticamente -->
+  <script>
+    window.MOBITPV_CONFIG = {
+      // Deja vacío para modo mock (GitHub Pages).
+      // Cuando tengas la URL de Railway, ponla aquí:
+      // apiUrl: 'https://TU-APP.railway.app'
+      apiUrl: ''
+    };
+  </script>
+  <script src="../js/api.js"></script>
   <style>
     html { scroll-behavior: smooth; }
     .bg-auth { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #0e7490 100%); }
@@ -331,13 +341,8 @@
       label.className = `text-xs w-16 ${lvl.color}`;
     }
 
-    // ──── Mock users (simula DB) ────
-    const USERS = [
-      { email: 'admin@mobitpv.es', password: 'demo1234', name: 'Admin Demo', shop: 'MobiTPV Demo' }
-    ];
-
-    // ──── Handle Login ────
-    function handleLogin(e) {
+    // ──── Handle Login (usa API con fallback mock) ────
+    async function handleLogin(e) {
       e.preventDefault();
       const email    = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
@@ -346,41 +351,32 @@
       const spinner  = document.getElementById('btn-login-spinner');
       const btn      = document.getElementById('btn-login');
 
-      // Loading state
       btnText.textContent = 'Verificando...';
       spinner.classList.remove('hidden');
       btn.disabled = true;
       errEl.classList.add('hidden');
 
-      setTimeout(() => {
-        const user = USERS.find(u => u.email === email && u.password === password);
-
-        if (user) {
-          // Save session
-          sessionStorage.setItem('tpv_user', JSON.stringify(user));
-          btnText.textContent = '✓ Accediendo...';
-          setTimeout(() => {
-            window.location.href = '../dashboard/index.html';
-          }, 600);
-        } else {
-          // Error
-          errEl.textContent = '❌ Email o contraseña incorrectos. Usa las credenciales del demo.';
-          errEl.classList.remove('hidden');
-          document.getElementById('form-login').classList.add('shake');
-          setTimeout(() => document.getElementById('form-login').classList.remove('shake'), 400);
-          btnText.textContent = 'Entrar al Panel';
-          spinner.classList.add('hidden');
-          btn.disabled = false;
-        }
-      }, 1200);
+      try {
+        await API.auth.login(email, password);
+        btnText.textContent = '✓ Accediendo...';
+        setTimeout(() => { window.location.href = '../dashboard/index.html'; }, 500);
+      } catch (err) {
+        errEl.textContent = '❌ ' + (err.message || 'Email o contraseña incorrectos.');
+        errEl.classList.remove('hidden');
+        document.getElementById('form-login').classList.add('shake');
+        setTimeout(() => document.getElementById('form-login').classList.remove('shake'), 400);
+        btnText.textContent = 'Entrar al Panel';
+        spinner.classList.add('hidden');
+        btn.disabled = false;
+      }
     }
 
-    // ──── Handle Register ────
-    function handleRegister(e) {
+    // ──── Handle Register (usa API con fallback mock) ────
+    async function handleRegister(e) {
       e.preventDefault();
       const email    = document.getElementById('reg-email').value.trim();
       const password = document.getElementById('reg-password').value;
-      const name     = document.getElementById('reg-name').value.trim();
+      const name     = document.getElementById('reg-name').value.trim() + ' ' + document.getElementById('reg-lastname').value.trim();
       const shop     = document.getElementById('reg-shop').value.trim();
       const errEl    = document.getElementById('reg-error');
       const btnText  = document.getElementById('btn-reg-text');
@@ -398,15 +394,17 @@
       btn.disabled = true;
       errEl.classList.add('hidden');
 
-      setTimeout(() => {
-        // Simulate registration
-        const newUser = { email, name, shop };
-        sessionStorage.setItem('tpv_user', JSON.stringify(newUser));
+      try {
+        await API.auth.register({ shop_name: shop, name: name.trim(), email, password });
         btnText.textContent = '✓ Cuenta creada';
-        setTimeout(() => {
-          window.location.href = '../dashboard/index.html';
-        }, 700);
-      }, 1400);
+        setTimeout(() => { window.location.href = '../dashboard/index.html'; }, 600);
+      } catch (err) {
+        errEl.textContent = '❌ ' + (err.message || 'Error al crear la cuenta.');
+        errEl.classList.remove('hidden');
+        btnText.textContent = 'Crear cuenta gratis';
+        spinner.classList.add('hidden');
+        btn.disabled = false;
+      }
     }
 
     // ──── Modal Forgot Password ────

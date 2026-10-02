@@ -21,6 +21,16 @@
     }
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <!-- API client: detecta Railway automáticamente -->
+  <script>
+    window.MOBITPV_CONFIG = {
+      // Deja vacío para modo mock (GitHub Pages).
+      // Cuando tengas la URL de Railway, ponla aquí:
+      // apiUrl: 'https://TU-APP.railway.app'
+      apiUrl: ''
+    };
+  </script>
+  <script src="../js/api.js"></script>
   <style>
     * { box-sizing: border-box; }
     html,body { height:100%; overflow:hidden; }
@@ -839,7 +849,7 @@ const RECENT_SALES = [
 // ══════════════════════════════════
 //  INIT
 // ══════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initUser();
   initClock();
   initDate();
@@ -850,10 +860,43 @@ document.addEventListener('DOMContentLoaded', () => {
   renderQuickProducts();
   initSignatureCanvas();
   initPatternGrid();
+
+  // Cargar datos reales desde API (reemplaza los mocks si hay backend)
+  try {
+    const [metrics, satData, productData, clientData, salesData] = await Promise.all([
+      API.dashboard.metrics(),
+      API.sat.list(),
+      API.products.list(),
+      API.clients.list(),
+      API.sales.list({ limit: 5 }),
+    ]);
+
+    // Métricas
+    document.getElementById('metric-sales').textContent =
+      '€' + (metrics.sales.today_total || 0).toLocaleString('es-ES', { minimumFractionDigits:2, maximumFractionDigits:2 });
+    document.getElementById('metric-sat').textContent   = metrics.sat.active || 0;
+
+    // SAT counters
+    document.getElementById('sat-count-pending').textContent  = metrics.sat.pending;
+    document.getElementById('sat-count-workshop').textContent = metrics.sat.workshop;
+    document.getElementById('sat-count-ready').textContent    = metrics.sat.ready;
+
+    // Tablas con datos reales
+    if (satData?.length)     { satRecords = satData; renderSATTable(satRecords); updateSATCounters(); }
+    if (productData?.length) { PRODUCTS.length = 0; productData.forEach(p => PRODUCTS.push(p)); renderInventory(PRODUCTS); renderQuickProducts(); }
+    if (clientData?.length)  { renderClientsData(clientData); }
+    if (salesData?.length)   { renderRecentSalesData(salesData); }
+
+  } catch (e) {
+    // Sin backend — los mocks ya están renderizados, no hay problema
+    console.log('[MobiTPV] Usando datos mock locales');
+  }
 });
 
 function initUser() {
-  const user = JSON.parse(sessionStorage.getItem('tpv_user') || '{"name":"Admin Demo","shop":"Demo Store"}');
+  // Redirige al login si no hay sesión
+  const user = API.auth.getUser();
+  if (!user) { window.location.href = '../auth/login.html'; return; }
   document.getElementById('user-name-display').textContent = user.name || 'Admin';
   document.getElementById('greet-name').textContent = (user.name || 'Admin').split(' ')[0];
   const initials = (user.name || 'A').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
@@ -897,7 +940,7 @@ function toggleSidebar() {
 }
 
 function logout() {
-  sessionStorage.clear();
+  API.auth.logout();
   window.location.href = '../auth/login.html';
 }
 
@@ -1416,6 +1459,47 @@ function renderRecentSales() {
       <td class="px-4 py-3 text-right text-sm font-bold text-white">${s.total}</td>
       <td class="px-4 py-3 text-right">
         <span class="text-xs font-semibold px-2 py-1 rounded-full ${s.payment==='Tarjeta'?'bg-blue-500/15 text-blue-400':'bg-green-500/15 text-green-400'}">${s.payment}</span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ──────────────────────────────────────────────────────────────
+//  RENDER CON DATOS REALES DE API
+// ──────────────────────────────────────────────────────────────
+function renderClientsData(clients) {
+  const tbody = document.getElementById('clients-table-body');
+  tbody.innerHTML = clients.map(c => `
+    <tr class="border-b border-[#2a2d3a] hover:bg-white/[0.02] transition">
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs">${(c.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+          <div class="text-sm font-semibold text-white">${c.name}</div>
+        </div>
+      </td>
+      <td class="px-4 py-3 text-sm text-gray-300">${c.phone||'—'}</td>
+      <td class="px-4 py-3 text-sm text-gray-400">${c.email||'—'}</td>
+      <td class="px-4 py-3 text-center text-sm font-semibold text-white">${c.purchases||0}</td>
+      <td class="px-4 py-3 text-center text-sm font-semibold ${(c.sat||0)>0?'text-orange-400':'text-gray-500'}">${c.sat||0}</td>
+      <td class="px-4 py-3 text-right text-sm font-bold text-white">€${(c.total||0).toFixed(2)}</td>
+      <td class="px-4 py-3 text-right">
+        <button onclick="toast('info','Historial de ${c.name}')" class="text-xs text-blue-400 hover:text-blue-300 transition">Ver historial</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderRecentSalesData(salesArr) {
+  const tbody = document.getElementById('recent-sales-table');
+  const payLabel = { cash:'Efectivo', card:'Tarjeta', mixed:'Mixto' };
+  tbody.innerHTML = salesArr.map(s => `
+    <tr class="border-b border-[#2a2d3a] hover:bg-white/[0.02] transition">
+      <td class="px-4 py-3 text-xs font-mono text-blue-400">#${s.ticket_num||s.id}</td>
+      <td class="px-4 py-3 text-sm text-white">${s.product_name||(s.items&&s.items[0]?s.items[0].product_name:'')||'—'}</td>
+      <td class="px-4 py-3 text-sm text-gray-400">${s.client_name||'Sin cliente'}</td>
+      <td class="px-4 py-3 text-right text-sm font-bold text-white">€${(s.total||0).toFixed(2)}</td>
+      <td class="px-4 py-3 text-right">
+        <span class="text-xs font-semibold px-2 py-1 rounded-full ${s.payment==='card'?'bg-blue-500/15 text-blue-400':'bg-green-500/15 text-green-400'}">${payLabel[s.payment]||s.payment}</span>
       </td>
     </tr>
   `).join('');

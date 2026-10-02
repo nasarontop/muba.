@@ -32,9 +32,10 @@ const low      = require('lowdb');
 const FileSync = require('lowdb/adapters/FileSync');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const PORT       = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'mobitpv_jwt_secret_2026_change_in_prod';
-const DB_FILE    = path.join(__dirname, 'db.json');
+const PORT        = process.env.PORT || 3001;
+const JWT_SECRET  = process.env.JWT_SECRET || 'mobitpv_jwt_secret_2026_change_in_prod';
+const DB_FILE     = path.join(__dirname, 'db.json');
+const FRONTEND_URL = process.env.FRONTEND_URL || '*';   // URL de GitHub Pages en producción
 
 // ─── LowDB setup ─────────────────────────────────────────────────────────────
 const adapter = new FileSync(DB_FILE);
@@ -93,10 +94,17 @@ if (db.get('users').size().value() === 0) {
 
 // ─── Express setup ────────────────────────────────────────────────────────────
 const app = express();
-app.use(cors({ origin: '*' }));
-app.use(express.json());
 
-// Serve static frontend
+// CORS: en producción solo permite el frontend de GitHub Pages
+app.use(cors({
+  origin: FRONTEND_URL === '*' ? '*' : [FRONTEND_URL, 'http://localhost:3001', 'http://127.0.0.1:5500'],
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+}));
+
+app.use(express.json({ limit: '2mb' }));
+
+// Serve static frontend (útil en local, Railway sirve solo la API)
 app.use(express.static(path.join(__dirname, '..')));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -430,12 +438,21 @@ app.get('*', (req, res) => {
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🚀 MobiTPV corriendo en http://localhost:${PORT}`);
-  console.log(`   🏠 Landing    → http://localhost:${PORT}/index.html`);
-  console.log(`   🔐 Login      → http://localhost:${PORT}/auth/login.html`);
-  console.log(`   📊 Dashboard  → http://localhost:${PORT}/dashboard/index.html`);
-  console.log(`   ❤️  API Health → http://localhost:${PORT}/api/health\n`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🚀 MobiTPV API arrancada`);
+  console.log(`   Puerto    : ${PORT}`);
+  console.log(`   Entorno   : ${process.env.NODE_ENV || 'development'}`);
+  console.log(`   CORS      : ${FRONTEND_URL}`);
+  console.log(`   Health    : http://localhost:${PORT}/api/health\n`);
+});
+
+// Cierre limpio (Railway envía SIGTERM antes de detener el contenedor)
+process.on('SIGTERM', () => {
+  console.log('SIGTERM recibido – cerrando servidor limpiamente');
+  server.close(() => process.exit(0));
+});
+process.on('SIGINT', () => {
+  server.close(() => process.exit(0));
 });
 
 module.exports = app;
