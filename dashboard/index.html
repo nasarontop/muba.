@@ -141,7 +141,7 @@
     <div class="px-3 mt-4 mb-2">
       <span class="nav-label text-[10px] font-semibold text-gray-600 uppercase tracking-wider px-2">Sistema</span>
     </div>
-    <div class="nav-item" onclick="showView('settings')">
+    <div class="nav-item" onclick="openSettings()">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       <span class="nav-label">Ajustes</span>
     </div>
@@ -173,7 +173,7 @@
     <!-- Clock -->
     <div id="clock" class="text-xs text-gray-400 font-mono"></div>
     <!-- Quick actions -->
-    <button onclick="showView('tpv')" class="text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+    <button onclick="quickSale()" class="text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
       <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
       Nueva venta
     </button>
@@ -250,7 +250,7 @@
           <div class="lg:col-span-1">
             <h2 class="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">Accesos rápidos</h2>
             <div class="space-y-2">
-              <button onclick="showView('tpv')" class="w-full flex items-center gap-3 p-3.5 bg-[#1a1d27] border border-[#2a2d3a] hover:border-blue-500/40 rounded-xl transition text-left">
+              <button onclick="quickSale()" class="w-full flex items-center gap-3 p-3.5 bg-[#1a1d27] border border-[#2a2d3a] hover:border-blue-500/40 rounded-xl transition text-left">
                 <div class="w-8 h-8 bg-blue-500/15 rounded-lg flex items-center justify-center">💳</div>
                 <div>
                   <div class="text-sm font-semibold text-white">Nueva Venta</div>
@@ -692,7 +692,7 @@
       <div class="max-w-5xl mx-auto">
         <div class="flex items-center justify-between mb-5">
           <h1 class="text-xl font-black text-white">Clientes</h1>
-          <button onclick="toast('success','Cliente añadido')" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition">
+          <button onclick="openAddClient()" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition">
             + Nuevo Cliente
           </button>
         </div>
@@ -1231,11 +1231,18 @@ function searchSAT(q) {
 }
 
 function updateSATStatus(id, status) {
+  if (API.mode === 'api') {
+    updateSATStatusAPI(id, status);
+    return;
+  }
+  
+  // Modo mock
   const rec = satRecords.find(r => r.id === id);
   if (rec) {
     rec.status = status;
     updateSATCounters();
     toast('success', `SAT ${id} → ${STATUS_CONFIG[status].label}`);
+    renderSATTable(satRecords);
   }
 }
 
@@ -1259,6 +1266,8 @@ function setPriority(p) {
 function submitSAT() {
   const name  = document.getElementById('sat-client-name').value.trim();
   const phone = document.getElementById('sat-client-phone').value.trim();
+  const email = document.getElementById('sat-client-email').value.trim();
+  const dni   = document.getElementById('sat-client-dni').value.trim();
   const model = document.getElementById('sat-model').value.trim();
   const fault = document.getElementById('sat-fault').value.trim();
 
@@ -1267,6 +1276,37 @@ function submitSAT() {
     return;
   }
 
+  // Si tenemos API, usar la API real
+  if (API.mode === 'api') {
+    const satData = {
+      client_name: name,
+      client_phone: phone,
+      client_email: email,
+      client_dni: dni,
+      device_brand: document.getElementById('sat-brand').value || '',
+      device_model: model,
+      imei: document.getElementById('sat-imei').value || '',
+      color: document.getElementById('sat-color').value || '',
+      fault: fault,
+      notes: document.getElementById('sat-notes').value || '',
+      budget: parseFloat(document.getElementById('sat-budget').value) || 0,
+      technician: document.getElementById('sat-tech').value || 'Sin asignar',
+      priority: state.selectedPriority || 'normal',
+      status: 'pending'
+    };
+
+    API.sat.create(satData).then(newSAT => {
+      toast('success', `Ficha ${newSAT.sat_num} creada para ${name}`);
+      resetSATForm();
+      satTab('list');
+      loadSATData();
+    }).catch(error => {
+      toast('error', 'Error al crear ficha: ' + error.message);
+    });
+    return;
+  }
+
+  // Modo mock (sin API)
   const newId = 'SAT-' + String(satRecords.length + 1).padStart(3,'0');
   const newRec = {
     id: newId,
@@ -1285,14 +1325,216 @@ function submitSAT() {
   toast('success', `Ficha ${newId} creada para ${name}`);
   satTab('list');
   renderSATTable(satRecords);
+  resetSATForm();
+}
 
-  // Reset form
-  ['sat-client-name','sat-client-phone','sat-client-email','sat-client-dni','sat-model','sat-imei','sat-color','sat-fault','sat-budget','sat-notes'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  clearSignature();
-  clearPattern();
+// ══════════════════════════════════════════════════════════════
+//  FUNCIONES DE CARGA DE DATOS API
+// ══════════════════════════════════════════════════════════════
+
+async function loadInventoryData() {
+  try {
+    const products = await API.products.list();
+    PRODUCTS.length = 0;
+    products.forEach(p => PRODUCTS.push(p));
+    renderInventory(PRODUCTS);
+    renderQuickProducts();
+  } catch (error) {
+    console.error('Error cargando productos:', error);
+  }
+}
+
+async function loadClientsData() {
+  try {
+    const clients = await API.clients.list();
+    renderClientsData(clients);
+  } catch (error) {
+    console.error('Error cargando clientes:', error);
+  }
+}
+
+async function loadSATData() {
+  try {
+    const satData = await API.sat.list();
+    satRecords.length = 0;
+    satData.forEach(s => satRecords.push({
+      id: s.sat_num,
+      client: s.client_name,
+      phone: s.client_phone,
+      device: `${s.device_brand} ${s.device_model}`,
+      imei: s.imei,
+      fault: s.fault,
+      status: s.status,
+      date: s.created_at?.split('T')[0],
+      budget: s.budget,
+      tech: s.technician,
+      priority: s.priority
+    }));
+    renderSATTable(satRecords);
+    updateSATCounters();
+  } catch (error) {
+    console.error('Error cargando datos SAT:', error);
+  }
+}
+
+async function loadDashboardMetrics() {
+  try {
+    const metrics = await API.dashboard.metrics();
+    
+    // Actualizar métricas en la UI
+    document.getElementById('metric-sales').textContent = '€' + metrics.sales.today_total;
+    document.getElementById('metric-sales-count').textContent = metrics.sales.today_count;
+    document.getElementById('metric-sat').textContent = metrics.sat.active;
+    document.getElementById('metric-products').textContent = metrics.inventory.total_products;
+    document.getElementById('metric-clients').textContent = metrics.clients.total;
+    
+    // Contadores SAT
+    document.getElementById('sat-count-pending').textContent = metrics.sat.pending;
+    document.getElementById('sat-count-workshop').textContent = metrics.sat.workshop;
+    document.getElementById('sat-count-ready').textContent = metrics.sat.ready;
+    
+    // Stock bajo/agotado
+    if (metrics.inventory.low_stock > 0) {
+      toast('warning', `${metrics.inventory.low_stock} productos con stock bajo`);
+    }
+    if (metrics.inventory.out_of_stock > 0) {
+      toast('error', `${metrics.inventory.out_of_stock} productos agotados`);
+    }
+    
+  } catch (error) {
+    console.error('Error cargando métricas:', error);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FUNCIONES ADICIONALES DE BOTONES
+// ══════════════════════════════════════════════════════════════
+
+function editProduct(id) {
+  const product = PRODUCTS.find(p => p.id === id);
+  if (!product) return;
+  
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-white">Editar Producto</h2>
+        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      
+      <form onsubmit="submitEditProduct(event, ${id})" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Nombre *</label>
+            <input type="text" name="name" value="${product.name}" class="field" required />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">SKU *</label>
+            <input type="text" name="sku" value="${product.sku}" class="field" required />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">IMEI</label>
+            <input type="text" name="imei" value="${product.imei || ''}" class="field" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Categoría *</label>
+            <select name="category" class="field" required>
+              <option value="phone" ${product.category === 'phone' ? 'selected' : ''}>Teléfono</option>
+              <option value="spare" ${product.category === 'spare' ? 'selected' : ''}>Repuesto</option>
+              <option value="accessory" ${product.category === 'accessory' ? 'selected' : ''}>Accesorio</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Precio Compra €</label>
+            <input type="number" name="buy_price" step="0.01" min="0" value="${product.buy_price || 0}" class="field" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Precio Venta € *</label>
+            <input type="number" name="sell_price" step="0.01" min="0" value="${product.sell_price}" class="field" required />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Stock Actual</label>
+            <input type="number" name="stock" min="0" value="${product.stock || 0}" class="field" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Stock Mínimo</label>
+            <input type="number" name="min_stock" min="0" value="${product.min_stock || 2}" class="field" />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Descripción</label>
+          <textarea name="description" rows="3" class="field resize-none">${product.description || ''}</textarea>
+        </div>
+        
+        <div class="flex gap-3 pt-4">
+          <button type="button" onclick="this.closest('.fixed').remove()" 
+            class="flex-1 py-3 text-gray-400 border border-[#2a2d3a] rounded-xl hover:border-gray-500 transition">
+            Cancelar
+          </button>
+          <button type="submit" 
+            class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition">
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function submitEditProduct(event, id) {
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData.entries());
+  
+  // Convertir números
+  if (data.buy_price) data.buy_price = parseFloat(data.buy_price);
+  if (data.sell_price) data.sell_price = parseFloat(data.sell_price);
+  if (data.stock) data.stock = parseInt(data.stock);
+  if (data.min_stock) data.min_stock = parseInt(data.min_stock);
+  
+  try {
+    await API.products.update(id, data);
+    toast('success', `Producto "${data.name}" actualizado`);
+    form.closest('.fixed').remove();
+    
+    // Actualizar vista
+    if (document.getElementById('view-inventory').classList.contains('active')) {
+      loadInventoryData();
+    }
+  } catch (error) {
+    toast('error', 'Error al actualizar: ' + error.message);
+  }
+}
+
+async function deleteProduct(id) {
+  const product = PRODUCTS.find(p => p.id === id);
+  if (!product) return;
+  
+  if (confirm(`¿Eliminar "${product.name}"?\n\nEsta acción no se puede deshacer.`)) {
+    try {
+      await API.products.remove(id);
+      toast('success', `Producto "${product.name}" eliminado`);
+      loadInventoryData();
+    } catch (error) {
+      toast('error', 'Error al eliminar: ' + error.message);
+    }
+  }
+}
+
+async function updateSATStatusAPI(id, newStatus) {
+  try {
+    const satRecord = satRecords.find(r => r.id === id);
+    if (!satRecord) return;
+    
+    await API.sat.update(satRecord.id, { status: newStatus });
+    toast('success', `Estado actualizado a: ${newStatus}`);
+    loadSATData();
+  } catch (error) {
+    toast('error', 'Error al actualizar estado: ' + error.message);
+  }
 }
 
 // ══════════════════════════════════
@@ -1393,8 +1635,11 @@ function renderInventory(items) {
       <td class="px-4 py-3 text-right">
         <div class="flex items-center justify-end gap-2">
           <button onclick="addToCart(${p.id}); showView('tpv')" class="text-xs text-blue-400 hover:text-blue-300 transition">Vender</button>
-          <button onclick="toast('info','Editando ${p.name}')" class="text-gray-500 hover:text-white transition">
+          <button onclick="editProduct(${p.id})" class="text-gray-500 hover:text-white transition ml-2" title="Editar">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+          <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-400 transition ml-1" title="Eliminar">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
           </button>
         </div>
       </td>
@@ -1416,8 +1661,190 @@ function filterInventory(cat) {
   renderInventory(filtered);
 }
 
+// ══════════════════════════════════════════════════════════════
+//  MODALS Y FORMULARIOS COMPLETOS
+// ══════════════════════════════════════════════════════════════
+
+// Modal para añadir producto
 function openAddProduct() {
-  toast('info','Formulario de nuevo producto (próximamente)');
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-white">Añadir Producto</h2>
+        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      
+      <form onsubmit="submitAddProduct(event)" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Nombre *</label>
+            <input type="text" name="name" placeholder="Samsung Galaxy A54" class="field" required />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">SKU *</label>
+            <input type="text" name="sku" placeholder="SGA54" class="field" required />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">IMEI</label>
+            <input type="text" name="imei" placeholder="351234567890001" class="field" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Categoría *</label>
+            <select name="category" class="field" required>
+              <option value="">Seleccionar...</option>
+              <option value="phone">Teléfono</option>
+              <option value="spare">Repuesto</option>
+              <option value="accessory">Accesorio</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Precio Compra €</label>
+            <input type="number" name="buy_price" step="0.01" min="0" placeholder="220.00" class="field" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Precio Venta € *</label>
+            <input type="number" name="sell_price" step="0.01" min="0" placeholder="329.00" class="field" required />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Stock Actual</label>
+            <input type="number" name="stock" min="0" placeholder="5" class="field" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Stock Mínimo</label>
+            <input type="number" name="min_stock" min="0" placeholder="2" class="field" />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Descripción</label>
+          <textarea name="description" rows="3" placeholder="Descripción adicional del producto..." class="field resize-none"></textarea>
+        </div>
+        
+        <div class="flex gap-3 pt-4">
+          <button type="button" onclick="this.closest('.fixed').remove()" 
+            class="flex-1 py-3 text-gray-400 border border-[#2a2d3a] rounded-xl hover:border-gray-500 transition">
+            Cancelar
+          </button>
+          <button type="submit" 
+            class="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition">
+            Guardar Producto
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function submitAddProduct(event) {
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData.entries());
+  
+  // Convertir números
+  if (data.buy_price) data.buy_price = parseFloat(data.buy_price);
+  if (data.sell_price) data.sell_price = parseFloat(data.sell_price);
+  if (data.stock) data.stock = parseInt(data.stock);
+  if (data.min_stock) data.min_stock = parseInt(data.min_stock);
+  
+  try {
+    const newProduct = await API.products.create(data);
+    toast('success', `Producto "${data.name}" añadido correctamente`);
+    form.closest('.fixed').remove();
+    
+    // Actualizar vista si estamos en inventario
+    if (document.getElementById('view-inventory').classList.contains('active')) {
+      loadInventoryData();
+    }
+  } catch (error) {
+    toast('error', 'Error al añadir producto: ' + error.message);
+  }
+}
+
+// Modal para añadir cliente
+function openAddClient() {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-2xl p-6 w-full max-w-lg mx-4">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-white">Nuevo Cliente</h2>
+        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      
+      <form onsubmit="submitAddClient(event)" class="space-y-4">
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Nombre Completo *</label>
+          <input type="text" name="name" placeholder="Carlos García" class="field" required />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Teléfono</label>
+          <input type="tel" name="phone" placeholder="666 111 222" class="field" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Email</label>
+          <input type="email" name="email" placeholder="carlos@email.com" class="field" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">DNI/NIF</label>
+          <input type="text" name="dni" placeholder="12345678A" class="field" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Dirección</label>
+          <input type="text" name="address" placeholder="Calle Principal 123, Madrid" class="field" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Notas</label>
+          <textarea name="notes" rows="3" placeholder="Cliente preferente, descuentos..." class="field resize-none"></textarea>
+        </div>
+        
+        <div class="flex gap-3 pt-4">
+          <button type="button" onclick="this.closest('.fixed').remove()" 
+            class="flex-1 py-3 text-gray-400 border border-[#2a2d3a] rounded-xl hover:border-gray-500 transition">
+            Cancelar
+          </button>
+          <button type="submit" 
+            class="flex-1 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition">
+            Guardar Cliente
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function submitAddClient(event) {
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData.entries());
+  
+  try {
+    const newClient = await API.clients.create(data);
+    toast('success', `Cliente "${data.name}" añadido correctamente`);
+    form.closest('.fixed').remove();
+    
+    // Actualizar vista si estamos en clientes
+    if (document.getElementById('view-clients').classList.contains('active')) {
+      loadClientsData();
+    }
+  } catch (error) {
+    toast('error', 'Error al añadir cliente: ' + error.message);
+  }
+}
+
+// Modal/Form para nueva ficha SAT
+function openNewSAT() {
+  showView('sat');
+  satTab('form');
+  // Focus en el primer campo después de un pequeño delay
+  setTimeout(() => {
+    const firstField = document.getElementById('sat-client-name');
+    if (firstField) firstField.focus();
+  }, 100);
 }
 
 // ══════════════════════════════════
@@ -1441,7 +1868,7 @@ function renderClients() {
       <td class="px-4 py-3 text-center text-sm font-semibold ${c.sat > 0 ? 'text-orange-400' : 'text-gray-500'}">${c.sat}</td>
       <td class="px-4 py-3 text-right text-sm font-bold text-white">€${c.total.toFixed(2)}</td>
       <td class="px-4 py-3 text-right">
-        <button onclick="toast('info','Historial de ${c.name}')" class="text-xs text-blue-400 hover:text-blue-300 transition">Ver historial</button>
+        <button onclick="viewClientHistory(${c.id})" class="text-xs text-blue-400 hover:text-blue-300 transition">Ver historial</button>
       </td>
     </tr>
   `).join('');
@@ -1484,7 +1911,7 @@ function renderClientsData(clients) {
       <td class="px-4 py-3 text-center text-sm font-semibold ${(c.sat||0)>0?'text-orange-400':'text-gray-500'}">${c.sat||0}</td>
       <td class="px-4 py-3 text-right text-sm font-bold text-white">€${(c.total||0).toFixed(2)}</td>
       <td class="px-4 py-3 text-right">
-        <button onclick="toast('info','Historial de ${c.name}')" class="text-xs text-blue-400 hover:text-blue-300 transition">Ver historial</button>
+        <button onclick="viewClientHistory(${c.id})" class="text-xs text-blue-400 hover:text-blue-300 transition">Ver historial</button>
       </td>
     </tr>
   `).join('');
@@ -1519,6 +1946,166 @@ function toast(type, message) {
   el.innerHTML = `${icons[type]||'ℹ️'} <span>${message}</span>`;
   document.getElementById('toast').appendChild(el);
   setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(100%)'; setTimeout(()=>el.remove(),300); }, 3000);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FUNCIONES ADICIONALES PARA COMPLETAR FUNCIONALIDADES
+// ══════════════════════════════════════════════════════════════
+
+// Función para ver historial de cliente
+function viewClientHistory(clientId) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-2xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-white">Historial de Cliente</h2>
+        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      <div class="text-center py-8">
+        <p class="text-gray-400">Cargando historial...</p>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// Función para nueva venta rápida
+async function quickSale() {
+  showView('tpv');
+  toast('info', 'TPV listo para nueva venta');
+}
+
+// Función para imprimir ticket
+function printTicket() {
+  if (cart.length === 0) {
+    toast('warning', 'El carrito está vacío');
+    return;
+  }
+  
+  toast('info', 'Preparando impresión del ticket...');
+  
+  // Crear ventana de impresión
+  const printWindow = window.open('', '_blank', 'width=300,height=600');
+  const ticket = generateTicketHTML();
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Ticket TPV</title>
+      <style>
+        body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; }
+        .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .item { display: flex; justify-content: space-between; margin: 2px 0; }
+        .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: bold; }
+      </style>
+    </head>
+    <body onload="window.print(); window.close();">
+      ${ticket}
+    </body>
+    </html>
+  `);
+}
+
+function generateTicketHTML() {
+  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const iva = subtotal * 0.21;
+  const total = subtotal + iva;
+  
+  return `
+    <div class="header">
+      <h2>MobiTPV Demo Store</h2>
+      <p>Ticket: T-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}</p>
+      <p>${new Date().toLocaleString('es-ES')}</p>
+    </div>
+    
+    ${cart.map(item => `
+      <div class="item">
+        <span>${item.name}</span>
+        <span>${item.qty}x €${item.price.toFixed(2)}</span>
+      </div>
+    `).join('')}
+    
+    <div class="total">
+      <div class="item">
+        <span>Subtotal:</span>
+        <span>€${subtotal.toFixed(2)}</span>
+      </div>
+      <div class="item">
+        <span>IVA (21%):</span>
+        <span>€${iva.toFixed(2)}</span>
+      </div>
+      <div class="item">
+        <span><strong>TOTAL:</strong></span>
+        <span><strong>€${total.toFixed(2)}</strong></span>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 15px; font-size: 10px;">
+      <p>¡Gracias por su compra!</p>
+      <p>www.mobitpv.es</p>
+    </div>
+  `;
+}
+
+// Función para reiniciar demo (limpiar datos)
+function resetDemo() {
+  if (confirm('¿Reiniciar datos demo?\n\nEsto limpiará el carrito y datos temporales.')) {
+    // Limpiar carrito
+    cart.length = 0;
+    updateCartDisplay();
+    
+    // Limpiar formularios
+    document.querySelectorAll('input, textarea, select').forEach(field => {
+      if (field.type !== 'submit' && field.type !== 'button') {
+        field.value = '';
+      }
+    });
+    
+    toast('success', 'Demo reiniciado');
+  }
+}
+
+// Función para abrir configuración
+function openSettings() {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-2xl p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-white">Configuración</h2>
+        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-sm font-semibold text-white mb-2">Sistema</h3>
+          <p class="text-xs text-gray-400 mb-3">Modo actual: ${API.mode === 'api' ? 'API Backend' : 'Datos Mock'}</p>
+          <button onclick="location.reload()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-xl transition">
+            Recargar Aplicación
+          </button>
+        </div>
+        
+        <div>
+          <h3 class="text-sm font-semibold text-white mb-2">Demo</h3>
+          <button onclick="resetDemo(); this.closest('.fixed').remove()" 
+            class="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white text-sm rounded-xl transition">
+            Reiniciar Demo
+          </button>
+        </div>
+        
+        <div>
+          <h3 class="text-sm font-semibold text-white mb-2">Cuenta</h3>
+          <button onclick="API.auth.logout(); window.location.href='../auth/login.html'" 
+            class="w-full py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-xl transition">
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
 }
 </script>
 </body>
