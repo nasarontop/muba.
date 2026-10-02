@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MobiTPV – Panel de Control</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sidebar: '#0f1117',
+            main:    '#13161e',
+            card:    '#1a1d27',
+            border:  '#2a2d3a',
+          },
+          fontFamily: { sans: ['Inter','sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; }
+    html,body { height:100%; overflow:hidden; }
+    body { font-family:'Inter',sans-serif; background:#13161e; color:#e2e8f0; }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:#2a2d3a; border-radius:4px; }
+    ::-webkit-scrollbar-thumb:hover { background:#3a3d4a; }
+
+    /* Sidebar */
+    .sidebar { width:220px; min-width:220px; background:#0f1117; border-right:1px solid #2a2d3a; transition:width .3s; }
+    .sidebar.collapsed { width:64px; min-width:64px; }
+    .sidebar.collapsed .nav-label, .sidebar.collapsed .sidebar-title, .sidebar.collapsed .user-info { display:none; }
+    .sidebar.collapsed .nav-item { justify-content:center; padding-left:0; padding-right:0; }
+
+    /* Nav items */
+    .nav-item { display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:10px; cursor:pointer; transition:all .15s; color:#94a3b8; font-size:13px; font-weight:500; margin:1px 8px; }
+    .nav-item:hover { background:rgba(59,130,246,0.1); color:#93c5fd; }
+    .nav-item.active { background:rgba(59,130,246,0.18); color:#60a5fa; border-left:3px solid #3b82f6; padding-left:13px; }
+    .nav-item .icon { width:18px; height:18px; flex-shrink:0; }
+
+    /* Views */
+    .view { display:none; height:100%; overflow-y:auto; padding:24px; }
+    .view.active { display:block; }
+
+    /* Cards */
+    .metric-card { background:#1a1d27; border:1px solid #2a2d3a; border-radius:16px; padding:20px; }
+
+    /* Inputs */
+    .field { background:rgba(255,255,255,0.05); border:1px solid #2a2d3a; color:#e2e8f0; border-radius:10px; padding:10px 14px; font-size:13px; width:100%; transition:border-color .2s; }
+    .field:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
+    .field::placeholder { color:#475569; }
+    select.field option { background:#1a1d27; }
+
+    /* Badges */
+    .badge-pending  { background:rgba(234,179,8,.12); color:#fbbf24; border:1px solid rgba(234,179,8,.25); }
+    .badge-workshop { background:rgba(59,130,246,.12); color:#60a5fa; border:1px solid rgba(59,130,246,.25); }
+    .badge-ready    { background:rgba(34,197,94,.12); color:#4ade80; border:1px solid rgba(34,197,94,.25); }
+    .badge-delivered{ background:rgba(148,163,184,.12); color:#94a3b8; border:1px solid rgba(148,163,184,.25); }
+    .badge { font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; }
+
+    /* TPV Cart item */
+    .cart-item { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#1a1d27; border:1px solid #2a2d3a; border-radius:12px; }
+
+    /* Ticket print styles */
+    @media print {
+      body * { visibility:hidden; }
+      #ticket-print, #ticket-print * { visibility:visible; }
+      #ticket-print { position:fixed; left:0; top:0; width:80mm; background:white; color:black; font-family:monospace; }
+    }
+
+    /* Signature canvas */
+    #sig-canvas { cursor:crosshair; touch-action:none; }
+
+    /* Pattern grid */
+    .pattern-dot { width:36px; height:36px; border-radius:50%; background:#2a2d3a; border:2px solid #3a3d4a; cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; }
+    .pattern-dot.selected { background:#3b82f6; border-color:#60a5fa; }
+    .pattern-dot.selected::after { content:''; width:12px; height:12px; background:#fff; border-radius:50%; }
+
+    /* Animations */
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in { animation:fadeIn .25s ease; }
+
+    /* Toast */
+    #toast { position:fixed; bottom:24px; right:24px; z-index:9999; transition:all .3s; }
+    .toast-item { background:#1a1d27; border:1px solid #2a2d3a; padding:12px 18px; border-radius:12px; font-size:13px; margin-top:8px; display:flex; align-items:center; gap:8px; box-shadow:0 8px 32px rgba(0,0,0,.4); }
+  </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside id="sidebar" class="sidebar flex flex-col h-full z-20">
+  <!-- Logo -->
+  <div class="flex items-center gap-3 px-4 py-5 border-b border-[#2a2d3a]">
+    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-black text-xs flex-shrink-0">M</div>
+    <span class="sidebar-title text-base font-bold text-white">Mobi<span class="text-blue-400">TPV</span></span>
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex-1 py-3 overflow-y-auto">
+    <div class="px-3 mb-2">
+      <span class="nav-label text-[10px] font-semibold text-gray-600 uppercase tracking-wider px-2">Principal</span>
+    </div>
+    <div class="nav-item active" onclick="showView('home')">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span class="nav-label">Inicio</span>
+    </div>
+    <div class="nav-item" onclick="showView('tpv')">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      <span class="nav-label">TPV Ventas</span>
+    </div>
+    <div class="nav-item" onclick="showView('sat')">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="nav-label">Serv. Técnico</span>
+    </div>
+    <div class="nav-item" onclick="showView('inventory')">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      <span class="nav-label">Inventario/IMEIs</span>
+    </div>
+    <div class="nav-item" onclick="showView('clients')">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="nav-label">Clientes</span>
+    </div>
+
+    <div class="px-3 mt-4 mb-2">
+      <span class="nav-label text-[10px] font-semibold text-gray-600 uppercase tracking-wider px-2">Sistema</span>
+    </div>
+    <div class="nav-item" onclick="showView('settings')">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="nav-label">Ajustes</span>
+    </div>
+  </nav>
+
+  <!-- User -->
+  <div class="border-t border-[#2a2d3a] p-4 flex items-center gap-3">
+    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0" id="avatar-initials">A</div>
+    <div class="user-info min-w-0">
+      <div class="text-xs font-semibold text-white truncate" id="user-name-display">Admin Demo</div>
+      <div class="text-[10px] text-gray-500">Pro · Activo</div>
+    </div>
+    <button onclick="logout()" class="user-info ml-auto text-gray-500 hover:text-red-400 transition" title="Cerrar sesión">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- ═══════════ MAIN AREA ═══════════ -->
+<div class="flex-1 flex flex-col overflow-hidden">
+
+  <!-- Topbar -->
+  <header class="flex items-center gap-4 px-6 py-3 border-b border-[#2a2d3a] bg-[#13161e] flex-shrink-0">
+    <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white transition">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div id="breadcrumb" class="text-sm font-semibold text-white">Inicio</div>
+    <div class="flex-1"></div>
+    <!-- Clock -->
+    <div id="clock" class="text-xs text-gray-400 font-mono"></div>
+    <!-- Quick actions -->
+    <button onclick="showView('tpv')" class="text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nueva venta
+    </button>
+    <button onclick="showView('sat'); openNewSAT()" class="text-xs bg-orange-600 hover:bg-orange-500 text-white font-semibold px-4 py-2 rounded-xl transition">+ SAT</button>
+  </header>
+
+  <!-- Views container -->
+  <div class="flex-1 overflow-hidden relative">
+
+    <!-- ═══ VIEW: HOME ═══ -->
+    <div id="view-home" class="view active fade-in">
+      <div class="max-w-6xl mx-auto">
+        <!-- Welcome -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-black text-white">Buenos días, <span id="greet-name">Admin</span> 👋</h1>
+            <p class="text-gray-400 text-sm mt-1" id="today-date"></p>
+          </div>
+          <div class="text-xs text-gray-500 bg-[#1a1d27] border border-[#2a2d3a] px-3 py-2 rounded-xl">
+            🟢 Sistema operativo
+          </div>
+        </div>
+
+        <!-- Metric cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="metric-card">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-9 h-9 bg-blue-500/15 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <span class="text-xs text-green-400 font-semibold bg-green-400/10 px-2 py-0.5 rounded-full">+12%</span>
+            </div>
+            <div class="text-2xl font-black text-white" id="metric-sales">€1,248</div>
+            <div class="text-xs text-gray-400 mt-1">Ventas hoy</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-9 h-9 bg-orange-500/15 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <span class="text-xs text-orange-400 font-semibold bg-orange-400/10 px-2 py-0.5 rounded-full">Urgentes: 2</span>
+            </div>
+            <div class="text-2xl font-black text-white" id="metric-sat">7</div>
+            <div class="text-xs text-gray-400 mt-1">Reparaciones pendientes</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-9 h-9 bg-red-500/15 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
+              <span class="text-xs text-red-400 font-semibold bg-red-400/10 px-2 py-0.5 rounded-full">⚠ Stock bajo</span>
+            </div>
+            <div class="text-2xl font-black text-white">4</div>
+            <div class="text-xs text-gray-400 mt-1">Productos stock mínimo</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-9 h-9 bg-green-500/15 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+              </div>
+              <span class="text-xs text-green-400 font-semibold bg-green-400/10 px-2 py-0.5 rounded-full">+3 hoy</span>
+            </div>
+            <div class="text-2xl font-black text-white">23</div>
+            <div class="text-xs text-gray-400 mt-1">Tickets emitidos hoy</div>
+          </div>
+        </div>
+
+        <!-- Quick access + recent activity -->
+        <div class="grid lg:grid-cols-3 gap-6">
+          <!-- Quick access -->
+          <div class="lg:col-span-1">
+            <h2 class="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">Accesos rápidos</h2>
+            <div class="space-y-2">
+              <button onclick="showView('tpv')" class="w-full flex items-center gap-3 p-3.5 bg-[#1a1d27] border border-[#2a2d3a] hover:border-blue-500/40 rounded-xl transition text-left">
+                <div class="w-8 h-8 bg-blue-500/15 rounded-lg flex items-center justify-center">💳</div>
+                <div>
+                  <div class="text-sm font-semibold text-white">Nueva Venta</div>
+                  <div class="text-xs text-gray-500">Abrir TPV rápido</div>
+                </div>
+                <svg class="w-4 h-4 text-gray-500 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button onclick="showView('sat'); openNewSAT()" class="w-full flex items-center gap-3 p-3.5 bg-[#1a1d27] border border-[#2a2d3a] hover:border-orange-500/40 rounded-xl transition text-left">
+                <div class="w-8 h-8 bg-orange-500/15 rounded-lg flex items-center justify-center">🔧</div>
+                <div>
+                  <div class="text-sm font-semibold text-white">Recibir Reparación</div>
+                  <div class="text-xs text-gray-500">Nueva ficha SAT</div>
+                </div>
+                <svg class="w-4 h-4 text-gray-500 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button onclick="showView('inventory')" class="w-full flex items-center gap-3 p-3.5 bg-[#1a1d27] border border-[#2a2d3a] hover:border-green-500/40 rounded-xl transition text-left">
+                <div class="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center">📦</div>
+                <div>
+                  <div class="text-sm font-semibold text-white">Ver Inventario</div>
+                  <div class="text-xs text-gray-500">Stock y productos</div>
+                </div>
+                <svg class="w-4 h-4 text-gray-500 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button onclick="showView('clients')" class="w-full flex items-center gap-3 p-3.5 bg-[#1a1d27] border border-[#2a2d3a] hover:border-purple-500/40 rounded-xl transition text-left">
+                <div class="w-8 h-8 bg-purple-500/15 rounded-lg flex items-center justify-center">👥</div>
+                <div>
+                  <div class="text-sm font-semibold text-white">Clientes</div>
+                  <div class="text-xs text-gray-500">Base de datos</div>
+                </div>
+                <svg class="w-4 h-4 text-gray-500 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Recent sales -->
+          <div class="lg:col-span-2">
+            <h2 class="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">Últimas ventas</h2>
+            <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl overflow-hidden">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-[#2a2d3a]">
+                    <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Ticket</th>
+                    <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Producto</th>
+                    <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Cliente</th>
+                    <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500">Total</th>
+                    <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500">Pago</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-sales-table">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SAT summary row -->
+        <div class="mt-6">
+          <h2 class="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">Estado SAT</h2>
+          <div class="grid grid-cols-4 gap-4">
+            <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-4 text-center">
+              <div class="text-2xl font-black text-yellow-400" id="sat-count-pending">3</div>
+              <div class="text-xs text-gray-400 mt-1">Pendientes</div>
+            </div>
+            <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-4 text-center">
+              <div class="text-2xl font-black text-blue-400" id="sat-count-workshop">2</div>
+              <div class="text-xs text-gray-400 mt-1">En taller</div>
+            </div>
+            <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-4 text-center">
+              <div class="text-2xl font-black text-green-400" id="sat-count-ready">2</div>
+              <div class="text-xs text-gray-400 mt-1">Listos</div>
+            </div>
+            <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-4 text-center">
+              <div class="text-2xl font-black text-gray-400">8</div>
+              <div class="text-xs text-gray-400 mt-1">Entregados (mes)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: TPV ═══ -->
+    <div id="view-tpv" class="view fade-in">
+      <div class="max-w-6xl mx-auto">
+        <h1 class="text-xl font-black text-white mb-5">TPV Rápido</h1>
+        <div class="grid lg:grid-cols-5 gap-6">
+
+          <!-- Left: Product search + cart -->
+          <div class="lg:col-span-3 space-y-4">
+            <!-- Search bar -->
+            <div class="relative">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input type="text" id="tpv-search" placeholder="Buscar producto, IMEI, código de barras…"
+                class="field pl-10 pr-4 py-3" oninput="searchProducts(this.value)" onkeydown="handleSearchKey(event)" />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 bg-[#2a2d3a] px-2 py-1 rounded">Enter</span>
+            </div>
+
+            <!-- Product results -->
+            <div id="product-results" class="hidden bg-[#1a1d27] border border-[#2a2d3a] rounded-xl overflow-hidden">
+              <!-- Populated by JS -->
+            </div>
+
+            <!-- Cart -->
+            <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl overflow-hidden">
+              <div class="flex items-center justify-between px-4 py-3 border-b border-[#2a2d3a]">
+                <h2 class="text-sm font-bold text-white">🛒 Carrito</h2>
+                <button onclick="clearCart()" class="text-xs text-gray-500 hover:text-red-400 transition">Vaciar</button>
+              </div>
+              <div id="cart-items" class="p-3 space-y-2 min-h-[120px]">
+                <div id="cart-empty" class="flex items-center justify-center h-24 text-gray-600 text-sm">
+                  Carrito vacío — busca un producto arriba
+                </div>
+              </div>
+              <!-- Discount -->
+              <div class="px-4 pb-3 border-t border-[#2a2d3a] pt-3 flex items-center gap-3">
+                <label class="text-xs text-gray-400 flex-shrink-0">Descuento %</label>
+                <input type="number" id="discount-input" value="0" min="0" max="100"
+                  class="field w-20 py-1.5 text-sm text-center" oninput="updateTotals()" />
+                <label class="text-xs text-gray-400 flex-shrink-0 ml-4">Cliente</label>
+                <select id="tpv-client" class="field flex-1 py-1.5 text-sm">
+                  <option value="">— Sin cliente —</option>
+                  <option>Carlos García</option>
+                  <option>María López</option>
+                  <option>Pedro Sánchez</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Totals + payment -->
+          <div class="lg:col-span-2 space-y-4">
+            <!-- Totals -->
+            <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-5 space-y-3">
+              <div class="flex justify-between text-sm text-gray-400">
+                <span>Subtotal</span><span id="subtotal" class="text-white font-semibold">€0.00</span>
+              </div>
+              <div class="flex justify-between text-sm text-gray-400">
+                <span>Descuento</span><span id="discount-display" class="text-red-400 font-semibold">-€0.00</span>
+              </div>
+              <div class="flex justify-between text-sm text-gray-400">
+                <span>IVA (21%)</span><span id="iva-display" class="text-white font-semibold">€0.00</span>
+              </div>
+              <div class="border-t border-[#2a2d3a] pt-3 flex justify-between">
+                <span class="text-base font-bold text-white">TOTAL</span>
+                <span id="total-display" class="text-2xl font-black text-blue-400">€0.00</span>
+              </div>
+            </div>
+
+            <!-- Payment method -->
+            <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-4">
+              <div class="text-xs font-semibold text-gray-400 uppercase mb-3">Método de pago</div>
+              <div class="grid grid-cols-3 gap-2 mb-3">
+                <button onclick="setPayment('cash')" id="pay-cash"
+                  class="pay-btn flex flex-col items-center gap-1 py-3 rounded-xl border border-[#3a3d4a] bg-[#2a2d3a] hover:border-green-500/50 hover:bg-green-500/10 transition text-xs font-semibold text-gray-300">
+                  💵<span>Efectivo</span>
+                </button>
+                <button onclick="setPayment('card')" id="pay-card"
+                  class="pay-btn flex flex-col items-center gap-1 py-3 rounded-xl border border-[#3a3d4a] bg-[#2a2d3a] hover:border-blue-500/50 hover:bg-blue-500/10 transition text-xs font-semibold text-gray-300">
+                  💳<span>Tarjeta</span>
+                </button>
+                <button onclick="setPayment('mixed')" id="pay-mixed"
+                  class="pay-btn flex flex-col items-center gap-1 py-3 rounded-xl border border-[#3a3d4a] bg-[#2a2d3a] hover:border-purple-500/50 hover:bg-purple-500/10 transition text-xs font-semibold text-gray-300">
+                  🔀<span>Mixto</span>
+                </button>
+              </div>
+              <!-- Cash tendered -->
+              <div id="cash-section" class="hidden space-y-2">
+                <input type="number" id="cash-tendered" placeholder="Efectivo entregado" class="field py-2 text-sm" oninput="calcChange()" />
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-400">Cambio</span>
+                  <span id="change-display" class="text-green-400 font-bold">€0.00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Charge button -->
+            <button onclick="processPayment()" id="btn-charge"
+              class="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-black text-lg rounded-2xl transition shadow-xl shadow-blue-900/30 disabled:opacity-40 disabled:cursor-not-allowed">
+              💳 Cobrar
+            </button>
+
+            <!-- Quick product grid -->
+            <div>
+              <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Accesos directos</div>
+              <div class="grid grid-cols-3 gap-2" id="quick-products">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: SAT ═══ -->
+    <div id="view-sat" class="view fade-in">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-between mb-5">
+          <h1 class="text-xl font-black text-white">Servicio Técnico (SAT)</h1>
+          <button onclick="openNewSAT()" class="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition">
+            + Nueva Reparación
+          </button>
+        </div>
+
+        <!-- Tabs: List / New form -->
+        <div class="flex gap-3 mb-5">
+          <button id="sat-tab-list" onclick="satTab('list')" class="text-xs font-semibold px-4 py-2 rounded-xl bg-orange-500/20 text-orange-300 border border-orange-500/30">Lista de reparaciones</button>
+          <button id="sat-tab-form" onclick="satTab('form')" class="text-xs font-semibold px-4 py-2 rounded-xl bg-[#1a1d27] text-gray-400 border border-[#2a2d3a]">+ Nueva ficha</button>
+        </div>
+
+        <!-- SAT: List view -->
+        <div id="sat-list-view">
+          <!-- Filter pills -->
+          <div class="flex items-center gap-2 mb-4 flex-wrap">
+            <button onclick="filterSAT('all')"    class="sat-filter text-xs px-3 py-1.5 rounded-full border border-[#2a2d3a] text-gray-400 hover:text-white transition font-medium sat-filter-active">Todos</button>
+            <button onclick="filterSAT('pending')"    class="sat-filter text-xs px-3 py-1.5 rounded-full badge-pending">Pendiente</button>
+            <button onclick="filterSAT('workshop')"   class="sat-filter text-xs px-3 py-1.5 rounded-full badge-workshop">En taller</button>
+            <button onclick="filterSAT('ready')"      class="sat-filter text-xs px-3 py-1.5 rounded-full badge-ready">Listo</button>
+            <button onclick="filterSAT('delivered')"  class="sat-filter text-xs px-3 py-1.5 rounded-full badge-delivered">Entregado</button>
+            <div class="ml-auto">
+              <input type="text" placeholder="Buscar por cliente, IMEI…" oninput="searchSAT(this.value)"
+                class="field py-1.5 text-xs w-52" />
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-[#2a2d3a]">
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Nº SAT</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Cliente</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Dispositivo</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Avería</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Estado</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Fecha</th>
+                  <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="sat-table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SAT: New form -->
+        <div id="sat-form-view" class="hidden">
+          <div class="grid lg:grid-cols-3 gap-6">
+            <!-- Left: Client + Device -->
+            <div class="lg:col-span-2 space-y-5">
+              <!-- Client data -->
+              <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-5">
+                <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">👤 Datos del Cliente</h3>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Nombre *</label>
+                    <input type="text" id="sat-client-name" placeholder="Carlos García" class="field py-2.5 text-sm" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Teléfono *</label>
+                    <input type="tel" id="sat-client-phone" placeholder="+34 600 000 000" class="field py-2.5 text-sm" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Email</label>
+                    <input type="email" id="sat-client-email" placeholder="cliente@email.com" class="field py-2.5 text-sm" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">DNI/NIF</label>
+                    <input type="text" id="sat-client-dni" placeholder="12345678A" class="field py-2.5 text-sm" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Device data -->
+              <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-5">
+                <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">📱 Datos del Dispositivo</h3>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Marca *</label>
+                    <select id="sat-brand" class="field py-2.5 text-sm">
+                      <option>Samsung</option><option>Apple</option><option>Xiaomi</option>
+                      <option>Huawei</option><option>OPPO</option><option>OnePlus</option><option>Otro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Modelo *</label>
+                    <input type="text" id="sat-model" placeholder="Galaxy S23" class="field py-2.5 text-sm" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">IMEI</label>
+                    <input type="text" id="sat-imei" placeholder="353901234567890" class="field py-2.5 text-sm" maxlength="15" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Color</label>
+                    <input type="text" id="sat-color" placeholder="Negro" class="field py-2.5 text-sm" />
+                  </div>
+                  <div class="col-span-2">
+                    <label class="text-xs text-gray-400 block mb-1">Avería / Descripción *</label>
+                    <textarea id="sat-fault" rows="2" placeholder="Describe la avería o síntoma…" class="field py-2.5 text-sm resize-none"></textarea>
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Presupuesto (€)</label>
+                    <input type="number" id="sat-budget" placeholder="0.00" class="field py-2.5 text-sm" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Técnico asignado</label>
+                    <select id="sat-tech" class="field py-2.5 text-sm">
+                      <option>Carlos Técnico</option><option>María Reparaciones</option><option>Sin asignar</option>
+                    </select>
+                  </div>
+                  <div class="col-span-2">
+                    <label class="text-xs text-gray-400 block mb-1">Observaciones / Accesorios entregados</label>
+                    <textarea id="sat-notes" rows="2" placeholder="Incluye cargador, sin funda…" class="field py-2.5 text-sm resize-none"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pattern unlock -->
+              <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-5">
+                <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">🔐 Patrón de Desbloqueo</h3>
+                <p class="text-xs text-gray-500 mb-4">Pide al cliente que dibuje su patrón de desbloqueo (si aplica).</p>
+                <div class="flex flex-col items-center gap-3">
+                  <div id="pattern-grid" class="grid grid-cols-3 gap-4 p-4 bg-[#0f1117] rounded-xl">
+                    <!-- 9 dots -->
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="text-xs text-gray-400">Patrón: <span id="pattern-display" class="text-blue-400 font-mono">—</span></div>
+                    <button type="button" onclick="clearPattern()" class="text-xs text-gray-500 hover:text-white border border-[#2a2d3a] px-3 py-1 rounded-lg">Limpiar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Signature + submit -->
+            <div class="space-y-5">
+              <!-- Signature -->
+              <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-5">
+                <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">✍️ Firma del Cliente</h3>
+                <p class="text-xs text-gray-500 mb-3">El cliente firma la aceptación del presupuesto y entrega del dispositivo.</p>
+                <div class="border border-[#3a3d4a] rounded-xl overflow-hidden bg-[#0f1117]">
+                  <canvas id="sig-canvas" width="280" height="160" class="w-full touch-none"></canvas>
+                </div>
+                <div class="flex gap-2 mt-2">
+                  <button type="button" onclick="clearSignature()" class="flex-1 text-xs text-gray-400 border border-[#2a2d3a] hover:border-gray-500 py-2 rounded-xl transition">Limpiar</button>
+                  <div id="sig-status" class="flex items-center gap-1 text-xs text-gray-500">
+                    <span id="sig-dot" class="w-2 h-2 rounded-full bg-gray-600"></span>
+                    <span id="sig-label">Sin firma</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Urgency / Priority -->
+              <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-5">
+                <h3 class="text-sm font-bold text-white mb-3">⚡ Prioridad</h3>
+                <div class="grid grid-cols-3 gap-2">
+                  <button onclick="setPriority('normal')" id="prio-normal" class="prio-btn text-xs py-2 rounded-xl border border-green-500/30 bg-green-500/10 text-green-400 font-semibold">Normal</button>
+                  <button onclick="setPriority('high')" id="prio-high" class="prio-btn text-xs py-2 rounded-xl border border-[#2a2d3a] text-gray-400 font-semibold">Alta</button>
+                  <button onclick="setPriority('urgent')" id="prio-urgent" class="prio-btn text-xs py-2 rounded-xl border border-[#2a2d3a] text-gray-400 font-semibold">Urgente</button>
+                </div>
+              </div>
+
+              <!-- Submit -->
+              <button onclick="submitSAT()" class="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black text-base rounded-2xl transition shadow-xl shadow-orange-900/30">
+                📋 Crear Ficha SAT
+              </button>
+              <button onclick="satTab('list')" class="w-full py-3 border border-[#2a2d3a] hover:border-gray-500 text-gray-400 hover:text-white text-sm rounded-xl transition">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: INVENTORY ═══ -->
+    <div id="view-inventory" class="view fade-in">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-between mb-5">
+          <h1 class="text-xl font-black text-white">Inventario / IMEIs</h1>
+          <button onclick="openAddProduct()" class="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition">
+            + Añadir Producto
+          </button>
+        </div>
+
+        <!-- Stats row -->
+        <div class="grid grid-cols-4 gap-4 mb-5">
+          <div class="metric-card text-center">
+            <div class="text-2xl font-black text-white">142</div><div class="text-xs text-gray-400 mt-1">Total artículos</div>
+          </div>
+          <div class="metric-card text-center">
+            <div class="text-2xl font-black text-green-400">38</div><div class="text-xs text-gray-400 mt-1">Móviles stock</div>
+          </div>
+          <div class="metric-card text-center">
+            <div class="text-2xl font-black text-yellow-400">61</div><div class="text-xs text-gray-400 mt-1">Repuestos</div>
+          </div>
+          <div class="metric-card text-center">
+            <div class="text-2xl font-black text-red-400">4</div><div class="text-xs text-gray-400 mt-1">Stock mínimo ⚠</div>
+          </div>
+        </div>
+
+        <!-- Search + filter -->
+        <div class="flex gap-3 mb-4">
+          <div class="relative flex-1">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" placeholder="Buscar por nombre, IMEI, referencia…" class="field pl-10 py-2.5 text-sm" oninput="searchInventory(this.value)" />
+          </div>
+          <select class="field py-2.5 text-sm w-48" onchange="filterInventory(this.value)">
+            <option value="all">Todas las categorías</option>
+            <option value="phone">Móviles</option>
+            <option value="accessory">Accesorios</option>
+            <option value="spare">Repuestos</option>
+          </select>
+        </div>
+
+        <!-- Inventory table -->
+        <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-[#2a2d3a]">
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Producto</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">IMEI / Ref</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Categoría</th>
+                <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500">Stock</th>
+                <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500">P. Compra</th>
+                <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500">P. Venta</th>
+                <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: CLIENTS ═══ -->
+    <div id="view-clients" class="view fade-in">
+      <div class="max-w-5xl mx-auto">
+        <div class="flex items-center justify-between mb-5">
+          <h1 class="text-xl font-black text-white">Clientes</h1>
+          <button onclick="toast('success','Cliente añadido')" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition">
+            + Nuevo Cliente
+          </button>
+        </div>
+
+        <div class="relative mb-4">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" placeholder="Buscar por nombre, teléfono, DNI…" class="field pl-10 py-2.5 text-sm" />
+        </div>
+
+        <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-[#2a2d3a]">
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Cliente</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Teléfono</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500">Email</th>
+                <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500">Compras</th>
+                <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500">SAT</th>
+                <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500">Total gastado</th>
+                <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="clients-table-body">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: SETTINGS ═══ -->
+    <div id="view-settings" class="view fade-in">
+      <div class="max-w-3xl mx-auto">
+        <h1 class="text-xl font-black text-white mb-6">Ajustes</h1>
+        <div class="space-y-5">
+          <!-- Store info -->
+          <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-6">
+            <h2 class="text-sm font-bold text-white mb-4">🏪 Datos de la Tienda</h2>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="text-xs text-gray-400 block mb-1">Nombre comercial</label><input type="text" value="MobiTPV Demo Store" class="field py-2.5 text-sm" /></div>
+              <div><label class="text-xs text-gray-400 block mb-1">CIF/NIF</label><input type="text" value="B12345678" class="field py-2.5 text-sm" /></div>
+              <div><label class="text-xs text-gray-400 block mb-1">Dirección</label><input type="text" value="Calle Mayor 1, Madrid" class="field py-2.5 text-sm" /></div>
+              <div><label class="text-xs text-gray-400 block mb-1">Teléfono tienda</label><input type="text" value="+34 900 000 000" class="field py-2.5 text-sm" /></div>
+              <div class="col-span-2"><label class="text-xs text-gray-400 block mb-1">Email</label><input type="email" value="info@mobitpv.es" class="field py-2.5 text-sm" /></div>
+            </div>
+          </div>
+          <!-- Ticket config -->
+          <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-6">
+            <h2 class="text-sm font-bold text-white mb-4">🧾 Configuración de Ticket</h2>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="text-xs text-gray-400 block mb-1">Ancho papel</label>
+                <select class="field py-2.5 text-sm"><option>80mm</option><option>58mm</option><option>A4</option></select>
+              </div>
+              <div><label class="text-xs text-gray-400 block mb-1">Texto pie de ticket</label><input type="text" value="¡Gracias por su compra!" class="field py-2.5 text-sm" /></div>
+              <div class="flex items-center gap-3 col-span-2">
+                <input type="checkbox" id="auto-print" checked class="w-4 h-4 accent-blue-500" />
+                <label for="auto-print" class="text-sm text-gray-300">Imprimir ticket automáticamente al cobrar</label>
+              </div>
+            </div>
+          </div>
+          <!-- IVA / Tax -->
+          <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-xl p-6">
+            <h2 class="text-sm font-bold text-white mb-4">💰 Impuestos</h2>
+            <div class="grid grid-cols-3 gap-4">
+              <div><label class="text-xs text-gray-400 block mb-1">IVA General</label><input type="number" value="21" class="field py-2.5 text-sm" /></div>
+              <div><label class="text-xs text-gray-400 block mb-1">IVA Reducido</label><input type="number" value="10" class="field py-2.5 text-sm" /></div>
+              <div class="flex items-center gap-3 mt-5">
+                <input type="checkbox" id="rebu" checked class="w-4 h-4 accent-blue-500" />
+                <label for="rebu" class="text-sm text-gray-300">Activar régimen REBU</label>
+              </div>
+            </div>
+          </div>
+          <button onclick="toast('success','Ajustes guardados correctamente')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition">Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end views -->
+</div><!-- end main -->
+
+<!-- ═══ TICKET MODAL ═══ -->
+<div id="ticket-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-[#1a1d27] border border-[#2a2d3a] rounded-2xl w-full max-w-sm shadow-2xl">
+    <div class="flex items-center justify-between p-5 border-b border-[#2a2d3a]">
+      <h2 class="text-base font-bold text-white">🧾 Ticket de Venta</h2>
+      <button onclick="closeTicket()" class="text-gray-400 hover:text-white text-xl">×</button>
+    </div>
+    <div class="p-5">
+      <div id="ticket-print" class="bg-white text-gray-800 font-mono text-xs p-4 rounded-xl" style="width:100%;max-width:80mm;margin:0 auto;">
+        <!-- Populated by JS -->
+      </div>
+      <div class="flex gap-3 mt-4">
+        <button onclick="window.print()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-sm transition">🖨️ Imprimir</button>
+        <button onclick="closeTicket()" class="flex-1 border border-[#2a2d3a] hover:border-gray-500 text-gray-400 hover:text-white py-2.5 rounded-xl text-sm transition">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST CONTAINER ═══ -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+//  GLOBAL STATE
+// ══════════════════════════════════
+const state = {
+  cart: [],
+  paymentMethod: 'cash',
+  selectedPriority: 'normal',
+  patternSequence: [],
+  sigDrawing: false,
+  satFilter: 'all',
+};
+
+// ══════════════════════════════════
+//  MOCK DATA
+// ══════════════════════════════════
+const PRODUCTS = [
+  { id:1, name:'Samsung Galaxy A54 5G', sku:'SGA54', imei:'351234567890001', category:'phone', buyPrice:220, sellPrice:329, stock:5 },
+  { id:2, name:'iPhone 13 128GB Reacondicionado', sku:'IP13128', imei:'352345678901002', category:'phone', buyPrice:380, sellPrice:549, stock:3 },
+  { id:3, name:'Xiaomi Redmi Note 12', sku:'XRN12', imei:'353456789012003', category:'phone', buyPrice:110, sellPrice:189, stock:8 },
+  { id:4, name:'Pantalla Samsung A54', sku:'PAN-A54', imei:'—', category:'spare', buyPrice:35, sellPrice:85, stock:12 },
+  { id:5, name:'Batería iPhone 13', sku:'BAT-IP13', imei:'—', category:'spare', buyPrice:18, sellPrice:49, stock:7 },
+  { id:6, name:'Funda Silicona iPhone 14', sku:'FUN-IP14', imei:'—', category:'accessory', buyPrice:4, sellPrice:14.99, stock:30 },
+  { id:7, name:'Cargador USB-C 20W', sku:'CAR-20W', imei:'—', category:'accessory', buyPrice:8, sellPrice:22.99, stock:2 },
+  { id:8, name:'Protector Cristal Templado S23', sku:'PCT-S23', imei:'—', category:'accessory', buyPrice:2, sellPrice:9.99, stock:0 },
+];
+
+const SAT_RECORDS = [
+  { id:'SAT-001', client:'Carlos García', phone:'666111222', device:'Samsung Galaxy S22', imei:'353000111222001', fault:'Pantalla rota', status:'pending', date:'2026-09-28', budget:120, tech:'Carlos Técnico', priority:'normal' },
+  { id:'SAT-002', client:'María López', phone:'677222333', device:'iPhone 12', imei:'354000222333002', fault:'No carga batería', status:'workshop', date:'2026-09-29', budget:80, tech:'María Reparaciones', priority:'high' },
+  { id:'SAT-003', client:'Pedro Sánchez', phone:'688333444', device:'Xiaomi Mi 11', imei:'355000333444003', fault:'No enciende', status:'ready', date:'2026-09-27', budget:60, tech:'Carlos Técnico', priority:'urgent' },
+  { id:'SAT-004', client:'Ana Torres', phone:'699444555', device:'Huawei P40', imei:'356000444555004', fault:'Micrófono no funciona', status:'delivered', date:'2026-09-25', budget:45, tech:'María Reparaciones', priority:'normal' },
+  { id:'SAT-005', client:'Luis Martín', phone:'611555666', device:'OPPO Find X3', imei:'357000555666005', fault:'WiFi intermitente', status:'pending', date:'2026-09-30', budget:70, tech:'Sin asignar', priority:'normal' },
+  { id:'SAT-006', client:'Sara Jiménez', phone:'622666777', device:'Samsung A53', imei:'358000666777006', fault:'Cámara trasera', status:'workshop', date:'2026-10-01', budget:95, tech:'Carlos Técnico', priority:'high' },
+  { id:'SAT-007', client:'Javier Ruiz', phone:'633777888', device:'iPhone 11', imei:'359000777888007', fault:'Face ID no funciona', status:'ready', date:'2026-09-26', budget:110, tech:'María Reparaciones', priority:'normal' },
+];
+
+const CLIENTS = [
+  { name:'Carlos García', phone:'666111222', email:'carlos@email.com', purchases:8, sat:2, total:1249 },
+  { name:'María López', phone:'677222333', email:'maria@email.com', purchases:5, sat:1, total:874 },
+  { name:'Pedro Sánchez', phone:'688333444', email:'pedro@email.com', purchases:12, sat:3, total:2340 },
+  { name:'Ana Torres', phone:'699444555', email:'ana@email.com', purchases:3, sat:1, total:458 },
+  { name:'Luis Martín', phone:'611555666', email:'luis@email.com', purchases:7, sat:0, total:1102 },
+];
+
+const RECENT_SALES = [
+  { ticket:'#T-0189', product:'Samsung Galaxy A54', client:'Carlos García', total:'€329.00', payment:'Tarjeta' },
+  { ticket:'#T-0188', product:'Batería iPhone 13', client:'Sin cliente', total:'€49.00', payment:'Efectivo' },
+  { ticket:'#T-0187', product:'Funda + Protector', client:'Ana Torres', total:'€24.98', payment:'Efectivo' },
+  { ticket:'#T-0186', product:'Cargador 20W ×2', client:'Pedro Sánchez', total:'€45.98', payment:'Tarjeta' },
+  { ticket:'#T-0185', product:'iPhone 13 128GB', client:'María López', total:'€549.00', payment:'Tarjeta' },
+];
+
+// ══════════════════════════════════
+//  INIT
+// ══════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initUser();
+  initClock();
+  initDate();
+  renderRecentSales();
+  renderSATTable(SAT_RECORDS);
+  renderInventory(PRODUCTS);
+  renderClients();
+  renderQuickProducts();
+  initSignatureCanvas();
+  initPatternGrid();
+});
+
+function initUser() {
+  const user = JSON.parse(sessionStorage.getItem('tpv_user') || '{"name":"Admin Demo","shop":"Demo Store"}');
+  document.getElementById('user-name-display').textContent = user.name || 'Admin';
+  document.getElementById('greet-name').textContent = (user.name || 'Admin').split(' ')[0];
+  const initials = (user.name || 'A').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('avatar-initials').textContent = initials;
+}
+
+function initClock() {
+  const el = document.getElementById('clock');
+  const tick = () => {
+    const now = new Date();
+    el.textContent = now.toLocaleTimeString('es-ES');
+  };
+  tick();
+  setInterval(tick, 1000);
+}
+
+function initDate() {
+  const el = document.getElementById('today-date');
+  if (el) el.textContent = new Date().toLocaleDateString('es-ES', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+
+// ══════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════
+const BREADCRUMBS = { home:'Inicio', tpv:'TPV Ventas', sat:'Servicio Técnico', inventory:'Inventario / IMEIs', clients:'Clientes', settings:'Ajustes' };
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const view = document.getElementById(`view-${name}`);
+  if (view) { view.classList.add('active'); view.classList.add('fade-in'); }
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(item => {
+    if (item.getAttribute('onclick')?.includes(`'${name}'`)) item.classList.add('active');
+  });
+  document.getElementById('breadcrumb').textContent = BREADCRUMBS[name] || name;
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+function logout() {
+  sessionStorage.clear();
+  window.location.href = '../auth/login.html';
+}
+
+// ══════════════════════════════════
+//  TPV
+// ══════════════════════════════════
+let filteredProducts = [...PRODUCTS];
+
+function searchProducts(q) {
+  const box = document.getElementById('product-results');
+  if (!q.trim()) { box.classList.add('hidden'); return; }
+  const results = PRODUCTS.filter(p =>
+    p.name.toLowerCase().includes(q.toLowerCase()) ||
+    p.sku.toLowerCase().includes(q.toLowerCase()) ||
+    p.imei.includes(q)
+  );
+  if (!results.length) {
+    box.innerHTML = '<div class="p-4 text-sm text-gray-500">No se encontraron productos.</div>';
+    box.classList.remove('hidden'); return;
+  }
+  box.innerHTML = results.map(p => `
+    <div onclick="addToCart(${p.id})" class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-[#2a2d3a] last:border-0 transition">
+      <div class="w-8 h-8 bg-blue-500/15 rounded-lg flex items-center justify-center text-sm">${p.category==='phone'?'📱':p.category==='spare'?'🔧':'📦'}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-semibold text-white truncate">${p.name}</div>
+        <div class="text-xs text-gray-500">${p.sku} ${p.imei !== '—' ? '· IMEI: '+p.imei : ''}</div>
+      </div>
+      <div class="text-right flex-shrink-0">
+        <div class="text-sm font-bold text-white">€${p.sellPrice.toFixed(2)}</div>
+        <div class="text-xs ${p.stock > 0 ? 'text-green-400' : 'text-red-400'}">${p.stock > 0 ? 'Stock: '+p.stock : 'Sin stock'}</div>
+      </div>
+    </div>
+  `).join('');
+  box.classList.remove('hidden');
+}
+
+function handleSearchKey(e) {
+  if (e.key === 'Enter') {
+    const q = e.target.value.trim();
+    const found = PRODUCTS.find(p => p.sku.toLowerCase() === q.toLowerCase() || p.imei === q);
+    if (found) { addToCart(found.id); e.target.value = ''; document.getElementById('product-results').classList.add('hidden'); }
+  }
+  if (e.key === 'Escape') { document.getElementById('product-results').classList.add('hidden'); }
+}
+
+function addToCart(productId) {
+  const p = PRODUCTS.find(x => x.id === productId);
+  if (!p) return;
+  if (p.stock === 0) { toast('error','Producto sin stock'); return; }
+  const existing = state.cart.find(x => x.id === productId);
+  if (existing) {
+    if (existing.qty >= p.stock) { toast('warning','Stock máximo alcanzado'); return; }
+    existing.qty++;
+  } else {
+    state.cart.push({ ...p, qty: 1 });
+  }
+  document.getElementById('tpv-search').value = '';
+  document.getElementById('product-results').classList.add('hidden');
+  renderCart();
+  updateTotals();
+}
+
+function removeFromCart(id) {
+  state.cart = state.cart.filter(x => x.id !== id);
+  renderCart();
+  updateTotals();
+}
+
+function changeQty(id, delta) {
+  const item = state.cart.find(x => x.id === id);
+  if (!item) return;
+  item.qty = Math.max(1, item.qty + delta);
+  if (item.qty > item.stock) item.qty = item.stock;
+  renderCart();
+  updateTotals();
+}
+
+function clearCart() {
+  state.cart = [];
+  renderCart();
+  updateTotals();
+}
+
+function renderCart() {
+  const container = document.getElementById('cart-items');
+  const emptyMsg  = document.getElementById('cart-empty');
+  if (!state.cart.length) {
+    container.innerHTML = '<div id="cart-empty" class="flex items-center justify-center h-24 text-gray-600 text-sm">Carrito vacío — busca un producto arriba</div>';
+    return;
+  }
+  container.innerHTML = state.cart.map(item => `
+    <div class="cart-item">
+      <div class="w-8 h-8 bg-blue-500/15 rounded-lg flex items-center justify-center text-sm flex-shrink-0">${item.category==='phone'?'📱':item.category==='spare'?'🔧':'📦'}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-semibold text-white truncate">${item.name}</div>
+        <div class="text-xs text-gray-500">€${item.sellPrice.toFixed(2)} / u</div>
+      </div>
+      <div class="flex items-center gap-1">
+        <button onclick="changeQty(${item.id},-1)" class="w-6 h-6 rounded-full bg-[#2a2d3a] hover:bg-[#3a3d4a] text-white text-sm flex items-center justify-center transition">−</button>
+        <span class="text-sm font-bold text-white w-6 text-center">${item.qty}</span>
+        <button onclick="changeQty(${item.id},1)" class="w-6 h-6 rounded-full bg-[#2a2d3a] hover:bg-[#3a3d4a] text-white text-sm flex items-center justify-center transition">+</button>
+      </div>
+      <div class="text-sm font-bold text-white w-16 text-right">€${(item.sellPrice * item.qty).toFixed(2)}</div>
+      <button onclick="removeFromCart(${item.id})" class="text-gray-600 hover:text-red-400 transition ml-1">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+function updateTotals() {
+  const subtotal  = state.cart.reduce((s, i) => s + i.sellPrice * i.qty, 0);
+  const discPct   = parseFloat(document.getElementById('discount-input').value) || 0;
+  const discount  = subtotal * (discPct / 100);
+  const afterDisc = subtotal - discount;
+  const iva       = afterDisc * 0.21;
+  const total     = afterDisc + iva;
+
+  document.getElementById('subtotal').textContent        = `€${subtotal.toFixed(2)}`;
+  document.getElementById('discount-display').textContent = `-€${discount.toFixed(2)}`;
+  document.getElementById('iva-display').textContent      = `€${iva.toFixed(2)}`;
+  document.getElementById('total-display').textContent    = `€${total.toFixed(2)}`;
+
+  calcChange();
+}
+
+function setPayment(method) {
+  state.paymentMethod = method;
+  document.querySelectorAll('.pay-btn').forEach(b => {
+    b.classList.remove('border-green-500','bg-green-500/15','border-blue-500','bg-blue-500/15','border-purple-500','bg-purple-500/15','text-white');
+  });
+  const map = { cash: ['pay-cash','green'], card: ['pay-card','blue'], mixed: ['pay-mixed','purple'] };
+  const [btnId, color] = map[method];
+  const btn = document.getElementById(btnId);
+  btn.classList.add(`border-${color}-500`, `bg-${color}-500/15`, 'text-white');
+  document.getElementById('cash-section').classList.toggle('hidden', method === 'card');
+}
+
+function calcChange() {
+  const totalText = document.getElementById('total-display').textContent;
+  const total = parseFloat(totalText.replace('€','')) || 0;
+  const cash  = parseFloat(document.getElementById('cash-tendered').value) || 0;
+  const change = Math.max(0, cash - total);
+  document.getElementById('change-display').textContent = `€${change.toFixed(2)}`;
+}
+
+function processPayment() {
+  if (!state.cart.length) { toast('warning','El carrito está vacío'); return; }
+  const total = document.getElementById('total-display').textContent;
+  generateTicket(total);
+  state.cart = [];
+  renderCart();
+  updateTotals();
+  // Update metric
+  toast('success', `Venta cobrada por ${total}`);
+}
+
+function generateTicket(total) {
+  const now = new Date();
+  const ticketNum = '#T-' + String(Math.floor(Math.random()*9000)+1000);
+  const rows = state.cart.map(i =>
+    `<tr><td style="padding:2px 0">${i.name.slice(0,22)}</td><td style="text-align:right">${i.qty}</td><td style="text-align:right">€${(i.sellPrice*i.qty).toFixed(2)}</td></tr>`
+  ).join('');
+
+  document.getElementById('ticket-print').innerHTML = `
+    <div style="text-align:center;border-bottom:1px dashed #ccc;padding-bottom:8px;margin-bottom:8px">
+      <div style="font-size:16px;font-weight:bold">MobiTPV</div>
+      <div style="font-size:10px;color:#666">Demo Store</div>
+      <div style="font-size:10px;color:#666">CIF: B12345678</div>
+      <div style="font-size:10px;color:#666">Tel: +34 900 000 000</div>
+    </div>
+    <div style="font-size:10px;margin-bottom:6px">
+      <div>Ticket: <strong>${ticketNum}</strong></div>
+      <div>Fecha: ${now.toLocaleDateString('es-ES')} ${now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div>
+      <div>Pago: ${state.paymentMethod === 'cash' ? 'Efectivo' : state.paymentMethod === 'card' ? 'Tarjeta' : 'Mixto'}</div>
+    </div>
+    <table style="width:100%;font-size:10px;border-top:1px dashed #ccc;padding-top:6px;margin-top:6px">
+      <thead><tr><th style="text-align:left">Producto</th><th style="text-align:right">Ud.</th><th style="text-align:right">€</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="border-top:1px dashed #ccc;margin-top:8px;padding-top:8px;font-size:12px;text-align:right">
+      <strong>TOTAL: ${total}</strong>
+    </div>
+    <div style="text-align:center;font-size:10px;color:#666;margin-top:10px;border-top:1px dashed #ccc;padding-top:6px">
+      ¡Gracias por su compra!<br/>www.mobitpv.es
+    </div>
+  `;
+  document.getElementById('ticket-modal').classList.remove('hidden');
+}
+
+function closeTicket() {
+  document.getElementById('ticket-modal').classList.add('hidden');
+}
+
+function renderQuickProducts() {
+  const phones = PRODUCTS.filter(p => p.category === 'phone').slice(0,6);
+  document.getElementById('quick-products').innerHTML = phones.map(p => `
+    <button onclick="addToCart(${p.id})" class="flex flex-col items-center gap-1 p-2 bg-[#1a1d27] border border-[#2a2d3a] hover:border-blue-500/40 rounded-xl transition">
+      <span class="text-xl">📱</span>
+      <span class="text-[10px] text-gray-400 text-center leading-tight truncate w-full">${p.name.split(' ').slice(0,3).join(' ')}</span>
+      <span class="text-xs font-bold text-white">€${p.sellPrice}</span>
+    </button>
+  `).join('');
+}
+
+// ══════════════════════════════════
+//  SAT
+// ══════════════════════════════════
+let satRecords = [...SAT_RECORDS];
+
+function satTab(tab) {
+  document.getElementById('sat-list-view').classList.toggle('hidden', tab !== 'list');
+  document.getElementById('sat-form-view').classList.toggle('hidden', tab !== 'form');
+  document.getElementById('sat-tab-list').className = tab === 'list'
+    ? 'text-xs font-semibold px-4 py-2 rounded-xl bg-orange-500/20 text-orange-300 border border-orange-500/30'
+    : 'text-xs font-semibold px-4 py-2 rounded-xl bg-[#1a1d27] text-gray-400 border border-[#2a2d3a]';
+  document.getElementById('sat-tab-form').className = tab === 'form'
+    ? 'text-xs font-semibold px-4 py-2 rounded-xl bg-orange-500/20 text-orange-300 border border-orange-500/30'
+    : 'text-xs font-semibold px-4 py-2 rounded-xl bg-[#1a1d27] text-gray-400 border border-[#2a2d3a]';
+}
+
+function openNewSAT() { satTab('form'); }
+
+const STATUS_CONFIG = {
+  pending:   { label:'Pendiente',  cls:'badge-pending' },
+  workshop:  { label:'En taller',  cls:'badge-workshop' },
+  ready:     { label:'Listo ✓',    cls:'badge-ready' },
+  delivered: { label:'Entregado',  cls:'badge-delivered' },
+};
+
+const PRIORITY_ICON = { normal:'', high:'🔥', urgent:'🚨' };
+
+function renderSATTable(records) {
+  const tbody = document.getElementById('sat-table-body');
+  if (!records.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500 text-sm">No hay registros SAT</td></tr>';
+    return;
+  }
+  tbody.innerHTML = records.map(r => {
+    const st = STATUS_CONFIG[r.status] || STATUS_CONFIG.pending;
+    return `
+    <tr class="border-b border-[#2a2d3a] hover:bg-white/[0.02] transition">
+      <td class="px-4 py-3 text-xs font-mono text-blue-400">${r.id}</td>
+      <td class="px-4 py-3">
+        <div class="text-sm font-semibold text-white">${r.client} ${PRIORITY_ICON[r.priority]}</div>
+        <div class="text-xs text-gray-500">${r.phone}</div>
+      </td>
+      <td class="px-4 py-3">
+        <div class="text-sm text-white">${r.device}</div>
+        <div class="text-xs text-gray-500 font-mono">${r.imei.slice(0,8)}…</div>
+      </td>
+      <td class="px-4 py-3 text-sm text-gray-300 max-w-[160px] truncate">${r.fault}</td>
+      <td class="px-4 py-3">
+        <select onchange="updateSATStatus('${r.id}',this.value)" class="badge ${st.cls} border-0 bg-transparent text-xs font-semibold cursor-pointer">
+          <option value="pending"  ${r.status==='pending'  ?'selected':''}>Pendiente</option>
+          <option value="workshop" ${r.status==='workshop' ?'selected':''}>En taller</option>
+          <option value="ready"    ${r.status==='ready'    ?'selected':''}>Listo</option>
+          <option value="delivered"${r.status==='delivered'?'selected':''}>Entregado</option>
+        </select>
+      </td>
+      <td class="px-4 py-3 text-xs text-gray-400">${r.date}</td>
+      <td class="px-4 py-3 text-right">
+        <div class="flex items-center justify-end gap-2">
+          <span class="text-xs font-semibold text-white">€${r.budget}</span>
+          <button onclick="toast('info','Ficha ${r.id} — ${r.client}')" class="text-gray-500 hover:text-blue-400 transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterSAT(filter) {
+  state.satFilter = filter;
+  const filtered = filter === 'all' ? satRecords : satRecords.filter(r => r.status === filter);
+  renderSATTable(filtered);
+}
+
+function searchSAT(q) {
+  const filtered = satRecords.filter(r =>
+    r.client.toLowerCase().includes(q.toLowerCase()) ||
+    r.imei.includes(q) ||
+    r.device.toLowerCase().includes(q.toLowerCase())
+  );
+  renderSATTable(filtered);
+}
+
+function updateSATStatus(id, status) {
+  const rec = satRecords.find(r => r.id === id);
+  if (rec) {
+    rec.status = status;
+    updateSATCounters();
+    toast('success', `SAT ${id} → ${STATUS_CONFIG[status].label}`);
+  }
+}
+
+function updateSATCounters() {
+  document.getElementById('sat-count-pending').textContent  = satRecords.filter(r=>r.status==='pending').length;
+  document.getElementById('sat-count-workshop').textContent = satRecords.filter(r=>r.status==='workshop').length;
+  document.getElementById('sat-count-ready').textContent    = satRecords.filter(r=>r.status==='ready').length;
+  document.getElementById('metric-sat').textContent         = satRecords.filter(r=>r.status==='pending'||r.status==='workshop').length;
+}
+
+function setPriority(p) {
+  state.selectedPriority = p;
+  document.querySelectorAll('.prio-btn').forEach(b => {
+    b.className = 'prio-btn text-xs py-2 rounded-xl border border-[#2a2d3a] text-gray-400 font-semibold';
+  });
+  const colorMap = { normal:'green', high:'orange', urgent:'red' };
+  const color = colorMap[p];
+  document.getElementById(`prio-${p}`).className = `prio-btn text-xs py-2 rounded-xl border border-${color}-500/50 bg-${color}-500/15 text-${color}-400 font-semibold`;
+}
+
+function submitSAT() {
+  const name  = document.getElementById('sat-client-name').value.trim();
+  const phone = document.getElementById('sat-client-phone').value.trim();
+  const model = document.getElementById('sat-model').value.trim();
+  const fault = document.getElementById('sat-fault').value.trim();
+
+  if (!name || !phone || !model || !fault) {
+    toast('error','Rellena los campos obligatorios (*)');
+    return;
+  }
+
+  const newId = 'SAT-' + String(satRecords.length + 1).padStart(3,'0');
+  const newRec = {
+    id: newId,
+    client: name, phone,
+    device: `${document.getElementById('sat-brand').value} ${model}`,
+    imei: document.getElementById('sat-imei').value || '—',
+    fault,
+    status: 'pending',
+    date: new Date().toISOString().split('T')[0],
+    budget: parseFloat(document.getElementById('sat-budget').value) || 0,
+    tech: document.getElementById('sat-tech').value,
+    priority: state.selectedPriority,
+  };
+  satRecords.unshift(newRec);
+  updateSATCounters();
+  toast('success', `Ficha ${newId} creada para ${name}`);
+  satTab('list');
+  renderSATTable(satRecords);
+
+  // Reset form
+  ['sat-client-name','sat-client-phone','sat-client-email','sat-client-dni','sat-model','sat-imei','sat-color','sat-fault','sat-budget','sat-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  clearSignature();
+  clearPattern();
+}
+
+// ══════════════════════════════════
+//  SIGNATURE CANVAS
+// ══════════════════════════════════
+function initSignatureCanvas() {
+  const canvas = document.getElementById('sig-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  let drawing = false;
+
+  const getPos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+  };
+
+  canvas.addEventListener('mousedown',  e => { drawing=true; ctx.beginPath(); const p=getPos(e); ctx.moveTo(p.x,p.y); });
+  canvas.addEventListener('mousemove',  e => { if(!drawing) return; const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); updateSigStatus(true); });
+  canvas.addEventListener('mouseup',    () => drawing=false);
+  canvas.addEventListener('mouseleave', () => drawing=false);
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing=true; ctx.beginPath(); const p=getPos(e); ctx.moveTo(p.x,p.y); }, {passive:false});
+  canvas.addEventListener('touchmove',  e => { e.preventDefault(); if(!drawing) return; const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); updateSigStatus(true); }, {passive:false});
+  canvas.addEventListener('touchend',   () => drawing=false);
+}
+
+function updateSigStatus(signed) {
+  const dot   = document.getElementById('sig-dot');
+  const label = document.getElementById('sig-label');
+  if (signed) {
+    dot.className   = 'w-2 h-2 rounded-full bg-green-400';
+    label.textContent = 'Firmado ✓';
+    label.className = 'text-xs text-green-400';
+  } else {
+    dot.className   = 'w-2 h-2 rounded-full bg-gray-600';
+    label.textContent = 'Sin firma';
+    label.className = 'text-xs text-gray-500';
+  }
+}
+
+function clearSignature() {
+  const canvas = document.getElementById('sig-canvas');
+  if (!canvas) return;
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  updateSigStatus(false);
+}
+
+// ══════════════════════════════════
+//  PATTERN GRID
+// ══════════════════════════════════
+function initPatternGrid() {
+  const grid = document.getElementById('pattern-grid');
+  if (!grid) return;
+  grid.innerHTML = Array.from({length:9}, (_,i) => `
+    <div class="pattern-dot" id="dot-${i}" onclick="selectDot(${i})">${i+1}</div>
+  `).join('');
+}
+
+function selectDot(i) {
+  if (state.patternSequence.includes(i)) return;
+  state.patternSequence.push(i);
+  document.getElementById(`dot-${i}`).classList.add('selected');
+  document.getElementById('pattern-display').textContent = state.patternSequence.map(x=>x+1).join('-');
+}
+
+function clearPattern() {
+  state.patternSequence = [];
+  document.querySelectorAll('.pattern-dot').forEach(d => d.classList.remove('selected'));
+  document.getElementById('pattern-display').textContent = '—';
+}
+
+// ══════════════════════════════════
+//  INVENTORY
+// ══════════════════════════════════
+function renderInventory(items) {
+  const tbody = document.getElementById('inventory-table-body');
+  tbody.innerHTML = items.map(p => {
+    const stockColor = p.stock === 0 ? 'text-red-400' : p.stock <= 2 ? 'text-yellow-400' : 'text-green-400';
+    const catLabel   = { phone:'📱 Móvil', spare:'🔧 Repuesto', accessory:'📦 Accesorio' };
+    return `
+    <tr class="border-b border-[#2a2d3a] hover:bg-white/[0.02] transition">
+      <td class="px-4 py-3">
+        <div class="text-sm font-semibold text-white">${p.name}</div>
+        <div class="text-xs text-gray-500">${p.sku}</div>
+      </td>
+      <td class="px-4 py-3 text-xs font-mono text-gray-400">${p.imei}</td>
+      <td class="px-4 py-3"><span class="text-xs text-gray-300">${catLabel[p.category]||p.category}</span></td>
+      <td class="px-4 py-3 text-center"><span class="text-sm font-bold ${stockColor}">${p.stock}</span></td>
+      <td class="px-4 py-3 text-right text-sm text-gray-400">€${p.buyPrice.toFixed(2)}</td>
+      <td class="px-4 py-3 text-right text-sm font-semibold text-white">€${p.sellPrice.toFixed(2)}</td>
+      <td class="px-4 py-3 text-right">
+        <div class="flex items-center justify-end gap-2">
+          <button onclick="addToCart(${p.id}); showView('tpv')" class="text-xs text-blue-400 hover:text-blue-300 transition">Vender</button>
+          <button onclick="toast('info','Editando ${p.name}')" class="text-gray-500 hover:text-white transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function searchInventory(q) {
+  const filtered = PRODUCTS.filter(p =>
+    p.name.toLowerCase().includes(q.toLowerCase()) ||
+    p.sku.toLowerCase().includes(q.toLowerCase()) ||
+    p.imei.includes(q)
+  );
+  renderInventory(filtered);
+}
+
+function filterInventory(cat) {
+  const filtered = cat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === cat);
+  renderInventory(filtered);
+}
+
+function openAddProduct() {
+  toast('info','Formulario de nuevo producto (próximamente)');
+}
+
+// ══════════════════════════════════
+//  CLIENTS
+// ══════════════════════════════════
+function renderClients() {
+  const tbody = document.getElementById('clients-table-body');
+  tbody.innerHTML = CLIENTS.map(c => `
+    <tr class="border-b border-[#2a2d3a] hover:bg-white/[0.02] transition">
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs">${c.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+          <div>
+            <div class="text-sm font-semibold text-white">${c.name}</div>
+          </div>
+        </div>
+      </td>
+      <td class="px-4 py-3 text-sm text-gray-300">${c.phone}</td>
+      <td class="px-4 py-3 text-sm text-gray-400">${c.email}</td>
+      <td class="px-4 py-3 text-center text-sm font-semibold text-white">${c.purchases}</td>
+      <td class="px-4 py-3 text-center text-sm font-semibold ${c.sat > 0 ? 'text-orange-400' : 'text-gray-500'}">${c.sat}</td>
+      <td class="px-4 py-3 text-right text-sm font-bold text-white">€${c.total.toFixed(2)}</td>
+      <td class="px-4 py-3 text-right">
+        <button onclick="toast('info','Historial de ${c.name}')" class="text-xs text-blue-400 hover:text-blue-300 transition">Ver historial</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ══════════════════════════════════
+//  RECENT SALES TABLE
+// ══════════════════════════════════
+function renderRecentSales() {
+  const tbody = document.getElementById('recent-sales-table');
+  tbody.innerHTML = RECENT_SALES.map(s => `
+    <tr class="border-b border-[#2a2d3a] hover:bg-white/[0.02] transition">
+      <td class="px-4 py-3 text-xs font-mono text-blue-400">${s.ticket}</td>
+      <td class="px-4 py-3 text-sm text-white">${s.product}</td>
+      <td class="px-4 py-3 text-sm text-gray-400">${s.client}</td>
+      <td class="px-4 py-3 text-right text-sm font-bold text-white">${s.total}</td>
+      <td class="px-4 py-3 text-right">
+        <span class="text-xs font-semibold px-2 py-1 rounded-full ${s.payment==='Tarjeta'?'bg-blue-500/15 text-blue-400':'bg-green-500/15 text-green-400'}">${s.payment}</span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ══════════════════════════════════
+//  TOAST NOTIFICATIONS
+// ══════════════════════════════════
+function toast(type, message) {
+  const icons   = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
+  const colors  = { success:'border-green-500/30', error:'border-red-500/30', warning:'border-yellow-500/30', info:'border-blue-500/30' };
+  const id = 'toast-' + Date.now();
+  const el = document.createElement('div');
+  el.id = id;
+  el.className = `toast-item ${colors[type]||colors.info}`;
+  el.innerHTML = `${icons[type]||'ℹ️'} <span>${message}</span>`;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(100%)'; setTimeout(()=>el.remove(),300); }, 3000);
+}
+</script>
+</body>
+</html>

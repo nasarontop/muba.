@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MobiTPV – Sistema TPV para Tiendas de Móviles y SAT</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            },
+            accent: '#06b6d4',
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    html { scroll-behavior: smooth; }
+    .gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0e7490 100%); }
+    .gradient-card { background: linear-gradient(135deg, #1e40af, #0891b2); }
+    .glass { backdrop-filter: blur(12px); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+    .glow { box-shadow: 0 0 40px rgba(59,130,246,0.4); }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    .float { animation: float 4s ease-in-out infinite; }
+    @keyframes pulse-ring { 0%{transform:scale(0.95);box-shadow:0 0 0 0 rgba(59,130,246,0.5)} 70%{transform:scale(1);box-shadow:0 0 0 16px rgba(59,130,246,0)} 100%{transform:scale(0.95)} }
+    .pulse-ring { animation: pulse-ring 2.5s infinite; }
+  </style>
+</head>
+<body class="font-sans bg-gray-950 text-white antialiased">
+
+  <!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
+  <nav class="fixed top-0 w-full z-50 glass">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl gradient-card flex items-center justify-center text-white font-black text-sm glow">M</div>
+        <span class="text-xl font-bold">Mobi<span class="text-blue-400">TPV</span></span>
+      </a>
+      <!-- Links desktop -->
+      <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
+        <a href="#caracteristicas" class="hover:text-white transition">Características</a>
+        <a href="#modulos" class="hover:text-white transition">Módulos</a>
+        <a href="#precios" class="hover:text-white transition">Precios</a>
+        <a href="#contacto" class="hover:text-white transition">Contacto</a>
+      </div>
+      <!-- CTA buttons -->
+      <div class="flex items-center gap-3">
+        <a href="auth/login.html" class="text-sm font-medium text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-white/10 transition">Iniciar Sesión</a>
+        <a href="auth/login.html?mode=register" class="text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl transition shadow-lg shadow-blue-900/40">Probar Gratis</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+  <section class="gradient-hero min-h-screen flex items-center pt-20 relative overflow-hidden">
+    <!-- Background decorations -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <div class="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-cyan-500/15 rounded-full blur-3xl"></div>
+      <div class="absolute top-1/2 left-1/2 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl"></div>
+      <!-- Grid pattern -->
+      <svg class="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
+        <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1"/></pattern></defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+      </svg>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-16 items-center relative z-10">
+      <!-- Left content -->
+      <div class="space-y-8">
+        <div class="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-semibold px-4 py-2 rounded-full">
+          <span class="w-2 h-2 bg-green-400 rounded-full pulse-ring inline-block"></span>
+          ✦ TPV Especializado para Telefonía Móvil &amp; SAT
+        </div>
+        <h1 class="text-5xl lg:text-6xl font-black leading-tight">
+          El TPV que tu<br/>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">tienda de móviles</span><br/>
+          necesitaba
+        </h1>
+        <p class="text-lg text-gray-300 leading-relaxed max-w-xl">
+          Gestiona ventas, reparaciones SAT, IMEIs, stock de repuestos y facturación REBU desde un único panel. 
+          Diseñado para tiendas de telefonía que quieren trabajar con más agilidad y menos papel.
+        </p>
+        <!-- Feature bullets -->
+        <ul class="space-y-3 text-sm text-gray-300">
+          <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-500/20 border border-green-500/40 rounded-full flex items-center justify-center text-green-400 text-xs">✓</span> Control de IMEIs y números de serie en tiempo real</li>
+          <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-500/20 border border-green-500/40 rounded-full flex items-center justify-center text-green-400 text-xs">✓</span> Módulo SAT con firma digital y seguimiento de reparaciones</li>
+          <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-500/20 border border-green-500/40 rounded-full flex items-center justify-center text-green-400 text-xs">✓</span> Facturación REBU/segunda mano homologada AEAT</li>
+          <li class="flex items-center gap-3"><span class="w-5 h-5 bg-green-500/20 border border-green-500/40 rounded-full flex items-center justify-center text-green-400 text-xs">✓</span> Tickets de 80mm e impresión directa sin configuración</li>
+        </ul>
+        <!-- CTA buttons -->
+        <div class="flex flex-wrap gap-4 pt-2">
+          <a href="auth/login.html?mode=register" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-2xl transition-all shadow-2xl shadow-blue-900/50 hover:scale-105 glow">
+            🚀 Probar Gratis 14 días
+          </a>
+          <a href="auth/login.html" class="flex items-center gap-2 border border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-white font-semibold px-8 py-4 rounded-2xl transition-all">
+            Iniciar Sesión →
+          </a>
+        </div>
+        <!-- Social proof -->
+        <div class="flex items-center gap-6 pt-4 text-sm text-gray-400">
+          <div class="text-center"><div class="text-2xl font-black text-white">500+</div><div>Tiendas activas</div></div>
+          <div class="w-px h-10 bg-white/10"></div>
+          <div class="text-center"><div class="text-2xl font-black text-white">1.2M+</div><div>Tickets emitidos</div></div>
+          <div class="w-px h-10 bg-white/10"></div>
+          <div class="text-center"><div class="text-2xl font-black text-white">98%</div><div>Satisfacción</div></div>
+        </div>
+      </div>
+
+      <!-- Right: Dashboard preview mock -->
+      <div class="relative float">
+        <div class="glass rounded-3xl p-4 shadow-2xl glow">
+          <!-- Mock topbar -->
+          <div class="flex items-center gap-2 mb-3 px-2">
+            <div class="w-3 h-3 rounded-full bg-red-400"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+            <div class="w-3 h-3 rounded-full bg-green-400"></div>
+            <div class="flex-1 bg-white/10 rounded-md h-5 ml-2"></div>
+          </div>
+          <!-- Mock dashboard -->
+          <div class="bg-gray-900 rounded-2xl overflow-hidden text-xs">
+            <!-- Sidebar mock -->
+            <div class="flex h-64">
+              <div class="w-14 bg-gray-800 flex flex-col items-center py-3 gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs">M</div>
+                <div class="w-6 h-6 rounded-md bg-blue-500/30 border border-blue-500/50"></div>
+                <div class="w-6 h-6 rounded-md bg-white/10"></div>
+                <div class="w-6 h-6 rounded-md bg-white/10"></div>
+                <div class="w-6 h-6 rounded-md bg-white/10"></div>
+              </div>
+              <!-- Content mock -->
+              <div class="flex-1 p-3 space-y-2">
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="bg-blue-600/30 border border-blue-500/30 rounded-lg p-2">
+                    <div class="text-blue-300 text-xs font-bold">€ 1,248</div>
+                    <div class="text-gray-400 text-[10px]">Ventas hoy</div>
+                  </div>
+                  <div class="bg-orange-600/30 border border-orange-500/30 rounded-lg p-2">
+                    <div class="text-orange-300 text-xs font-bold">7</div>
+                    <div class="text-gray-400 text-[10px]">SAT pendientes</div>
+                  </div>
+                  <div class="bg-green-600/30 border border-green-500/30 rounded-lg p-2">
+                    <div class="text-green-300 text-xs font-bold">142</div>
+                    <div class="text-gray-400 text-[10px]">En stock</div>
+                  </div>
+                </div>
+                <!-- TPV mock -->
+                <div class="bg-gray-800 rounded-lg p-2">
+                  <div class="flex items-center gap-1 mb-2">
+                    <div class="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <span class="text-gray-300 text-[10px] font-semibold">TPV Rápido</span>
+                  </div>
+                  <div class="bg-gray-700 rounded p-1 mb-1 flex items-center gap-1">
+                    <div class="w-2 h-2 bg-white/20 rounded"></div>
+                    <div class="flex-1 bg-white/10 h-2 rounded"></div>
+                    <div class="text-white text-[9px]">€189</div>
+                  </div>
+                  <div class="bg-gray-700 rounded p-1 flex items-center gap-1">
+                    <div class="w-2 h-2 bg-white/20 rounded"></div>
+                    <div class="flex-1 bg-white/10 h-2 rounded"></div>
+                    <div class="text-white text-[9px]">€29</div>
+                  </div>
+                  <div class="flex gap-1 mt-2">
+                    <div class="flex-1 bg-green-600 rounded p-1 text-center text-[9px] font-bold text-white">Efectivo</div>
+                    <div class="flex-1 bg-blue-600 rounded p-1 text-center text-[9px] font-bold text-white">Tarjeta</div>
+                  </div>
+                </div>
+                <!-- SAT row mock -->
+                <div class="bg-gray-800 rounded-lg p-2">
+                  <div class="text-[10px] text-gray-400 mb-1">SAT / Reparaciones</div>
+                  <div class="flex gap-1">
+                    <span class="bg-yellow-500/20 text-yellow-300 text-[9px] px-1 rounded">Pendiente ×3</span>
+                    <span class="bg-blue-500/20 text-blue-300 text-[9px] px-1 rounded">En taller ×2</span>
+                    <span class="bg-green-500/20 text-green-300 text-[9px] px-1 rounded">Listo ×2</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Floating badges -->
+        <div class="absolute -top-4 -right-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">✓ AEAT Certificado</div>
+        <div class="absolute -bottom-4 -left-4 glass text-xs px-3 py-2 rounded-xl">🔒 Datos seguros en la nube</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ CARACTERÍSTICAS ═══════════════════════════ -->
+  <section id="caracteristicas" class="bg-gray-950 py-24">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold px-4 py-2 rounded-full mb-4">CARACTERÍSTICAS PRINCIPALES</div>
+        <h2 class="text-4xl font-black mb-4">Todo lo que tu tienda necesita,<br/><span class="text-blue-400">en un solo panel</span></h2>
+        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Diseñado específicamente para tiendas de telefonía y centros SAT, con flujos de trabajo optimizados para tu día a día.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Card 1: IMEIs -->
+        <div class="group bg-gray-900 border border-gray-800 hover:border-blue-500/50 rounded-2xl p-6 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-900/20">
+          <div class="w-12 h-12 bg-blue-500/20 border border-blue-500/30 rounded-xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">📱</div>
+          <h3 class="text-lg font-bold mb-2">Gestión de IMEIs</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Registra, busca y trazabiliza cada dispositivo por IMEI. Historial completo de compra-venta por número de serie.</p>
+          <div class="mt-4 flex flex-wrap gap-1">
+            <span class="bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded-full">IMEI lookup</span>
+            <span class="bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded-full">Trazabilidad</span>
+          </div>
+        </div>
+        <!-- Card 2: SAT -->
+        <div class="group bg-gray-900 border border-gray-800 hover:border-orange-500/50 rounded-2xl p-6 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-900/20">
+          <div class="w-12 h-12 bg-orange-500/20 border border-orange-500/30 rounded-xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">🔧</div>
+          <h3 class="text-lg font-bold mb-2">Módulo SAT</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Gestión completa de reparaciones con ficha de recepción, firma digital del cliente, patrón de desbloqueo y estados en tiempo real.</p>
+          <div class="mt-4 flex flex-wrap gap-1">
+            <span class="bg-orange-500/10 text-orange-400 text-xs px-2 py-1 rounded-full">Firma digital</span>
+            <span class="bg-orange-500/10 text-orange-400 text-xs px-2 py-1 rounded-full">Seguimiento</span>
+          </div>
+        </div>
+        <!-- Card 3: Inventario -->
+        <div class="group bg-gray-900 border border-gray-800 hover:border-green-500/50 rounded-2xl p-6 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-green-900/20">
+          <div class="w-12 h-12 bg-green-500/20 border border-green-500/30 rounded-xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">📦</div>
+          <h3 class="text-lg font-bold mb-2">Inventario de Repuestos</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Stock de pantallas, baterías, accesorios y repuestos con alertas de mínimo, historial de movimientos y códigos de barras.</p>
+          <div class="mt-4 flex flex-wrap gap-1">
+            <span class="bg-green-500/10 text-green-400 text-xs px-2 py-1 rounded-full">Stock mínimo</span>
+            <span class="bg-green-500/10 text-green-400 text-xs px-2 py-1 rounded-full">Alertas</span>
+          </div>
+        </div>
+        <!-- Card 4: Facturación -->
+        <div class="group bg-gray-900 border border-gray-800 hover:border-purple-500/50 rounded-2xl p-6 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-900/20">
+          <div class="w-12 h-12 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">🧾</div>
+          <h3 class="text-lg font-bold mb-2">Facturación / REBU</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Facturas normales y REBU (régimen de segunda mano) totalmente homologadas, tickets de 80mm e integración AEAT.</p>
+          <div class="mt-4 flex flex-wrap gap-1">
+            <span class="bg-purple-500/10 text-purple-400 text-xs px-2 py-1 rounded-full">REBU</span>
+            <span class="bg-purple-500/10 text-purple-400 text-xs px-2 py-1 rounded-full">AEAT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ MÓDULOS ═══════════════════════════ -->
+  <section id="modulos" class="bg-gray-900 py-24">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold px-4 py-2 rounded-full mb-4">MÓDULOS DEL SISTEMA</div>
+        <h2 class="text-4xl font-black mb-4">Cada módulo pensado para<br/><span class="text-cyan-400">ahorrar tiempo real</span></h2>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-8">
+        <!-- TPV Rápido -->
+        <div class="bg-gray-800 rounded-3xl p-8 border border-gray-700">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-xl">💳</div>
+            <h3 class="text-xl font-bold">TPV Rápido</h3>
+          </div>
+          <ul class="space-y-3 text-gray-300 text-sm">
+            <li class="flex items-start gap-2"><span class="text-blue-400 mt-0.5">→</span> Carrito de venta con buscador de código de barras e IMEI</li>
+            <li class="flex items-start gap-2"><span class="text-blue-400 mt-0.5">→</span> Cobro en efectivo, tarjeta o mixto</li>
+            <li class="flex items-start gap-2"><span class="text-blue-400 mt-0.5">→</span> Ticket de 80mm imprimible en 1 clic</li>
+            <li class="flex items-start gap-2"><span class="text-blue-400 mt-0.5">→</span> Descuentos por línea o totales</li>
+            <li class="flex items-start gap-2"><span class="text-blue-400 mt-0.5">→</span> Ventas anuladas y devoluciones</li>
+          </ul>
+        </div>
+        <!-- Servicio Técnico -->
+        <div class="bg-gray-800 rounded-3xl p-8 border border-gray-700">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center text-xl">🛠️</div>
+            <h3 class="text-xl font-bold">Servicio Técnico</h3>
+          </div>
+          <ul class="space-y-3 text-gray-300 text-sm">
+            <li class="flex items-start gap-2"><span class="text-orange-400 mt-0.5">→</span> Ficha de recepción con datos del cliente y dispositivo</li>
+            <li class="flex items-start gap-2"><span class="text-orange-400 mt-0.5">→</span> Captura de patrón de desbloqueo del móvil</li>
+            <li class="flex items-start gap-2"><span class="text-orange-400 mt-0.5">→</span> Firma digital del cliente en pantalla</li>
+            <li class="flex items-start gap-2"><span class="text-orange-400 mt-0.5">→</span> Estados: Pendiente → En taller → Listo → Entregado</li>
+            <li class="flex items-start gap-2"><span class="text-orange-400 mt-0.5">→</span> SMS/WhatsApp automático al cliente</li>
+          </ul>
+        </div>
+        <!-- Clientes y CRM -->
+        <div class="bg-gray-800 rounded-3xl p-8 border border-gray-700">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-xl">👥</div>
+            <h3 class="text-xl font-bold">Clientes y CRM</h3>
+          </div>
+          <ul class="space-y-3 text-gray-300 text-sm">
+            <li class="flex items-start gap-2"><span class="text-green-400 mt-0.5">→</span> Ficha de cliente con historial completo</li>
+            <li class="flex items-start gap-2"><span class="text-green-400 mt-0.5">→</span> Compras, reparaciones y facturas por cliente</li>
+            <li class="flex items-start gap-2"><span class="text-green-400 mt-0.5">→</span> Datos de empresa y CIF para facturas B2B</li>
+            <li class="flex items-start gap-2"><span class="text-green-400 mt-0.5">→</span> Búsqueda rápida por nombre, teléfono o DNI</li>
+            <li class="flex items-start gap-2"><span class="text-green-400 mt-0.5">→</span> Exportación a Excel/PDF</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ PRECIOS ═══════════════════════════ -->
+  <section id="precios" class="bg-gray-950 py-24">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold px-4 py-2 rounded-full mb-4">PLANES Y PRECIOS</div>
+        <h2 class="text-4xl font-black mb-4">Sin sorpresas.<br/><span class="text-purple-400">Precio claro desde el primer día.</span></h2>
+        <p class="text-gray-400 text-lg">14 días de prueba gratuita en todos los planes. Sin tarjeta de crédito.</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <!-- Plan Básico -->
+        <div class="bg-gray-900 border border-gray-700 rounded-3xl p-8 flex flex-col">
+          <div class="mb-8">
+            <div class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">Básico</div>
+            <div class="flex items-end gap-1 mb-3">
+              <span class="text-4xl font-black">€29</span>
+              <span class="text-gray-400 mb-1">/mes</span>
+            </div>
+            <p class="text-gray-400 text-sm">Ideal para tiendas pequeñas con 1 puesto de venta.</p>
+          </div>
+          <ul class="space-y-3 text-sm text-gray-300 mb-8 flex-1">
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> 1 usuario</li>
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> TPV básico</li>
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> 500 productos</li>
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Tickets e-mail</li>
+            <li class="flex items-center gap-2"><span class="text-gray-600">✗</span> <span class="text-gray-500">Módulo SAT</span></li>
+            <li class="flex items-center gap-2"><span class="text-gray-600">✗</span> <span class="text-gray-500">Facturación REBU</span></li>
+          </ul>
+          <a href="auth/login.html?mode=register" class="block text-center border border-gray-600 hover:border-white text-white font-semibold py-3 rounded-xl transition">Empezar gratis</a>
+        </div>
+
+        <!-- Plan PRO (recomendado) -->
+        <div class="relative bg-blue-600 border border-blue-500 rounded-3xl p-8 flex flex-col shadow-2xl shadow-blue-900/50 scale-105">
+          <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-gray-900 text-xs font-black px-4 py-1 rounded-full">MÁS POPULAR</div>
+          <div class="mb-8">
+            <div class="text-blue-200 text-sm font-semibold uppercase tracking-wider mb-2">Pro</div>
+            <div class="flex items-end gap-1 mb-3">
+              <span class="text-4xl font-black">€59</span>
+              <span class="text-blue-200 mb-1">/mes</span>
+            </div>
+            <p class="text-blue-100 text-sm">Para tiendas medianas con SAT activo.</p>
+          </div>
+          <ul class="space-y-3 text-sm text-blue-100 mb-8 flex-1">
+            <li class="flex items-center gap-2"><span class="text-yellow-300">✓</span> 3 usuarios</li>
+            <li class="flex items-center gap-2"><span class="text-yellow-300">✓</span> TPV completo + IMEIs</li>
+            <li class="flex items-center gap-2"><span class="text-yellow-300">✓</span> Productos ilimitados</li>
+            <li class="flex items-center gap-2"><span class="text-yellow-300">✓</span> Módulo SAT completo</li>
+            <li class="flex items-center gap-2"><span class="text-yellow-300">✓</span> Facturación REBU</li>
+            <li class="flex items-center gap-2"><span class="text-yellow-300">✓</span> Soporte prioritario</li>
+          </ul>
+          <a href="auth/login.html?mode=register" class="block text-center bg-white text-blue-700 font-bold py-3 rounded-xl transition hover:bg-blue-50">Empezar gratis</a>
+        </div>
+
+        <!-- Plan Enterprise -->
+        <div class="bg-gray-900 border border-gray-700 rounded-3xl p-8 flex flex-col">
+          <div class="mb-8">
+            <div class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">Enterprise</div>
+            <div class="flex items-end gap-1 mb-3">
+              <span class="text-4xl font-black">€99</span>
+              <span class="text-gray-400 mb-1">/mes</span>
+            </div>
+            <p class="text-gray-400 text-sm">Cadenas de tiendas y franquicias multi-tienda.</p>
+          </div>
+          <ul class="space-y-3 text-sm text-gray-300 mb-8 flex-1">
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Usuarios ilimitados</li>
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Multi-tienda centralizada</li>
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> API + integraciones</li>
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Gestor dedicado</li>
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> Informes avanzados</li>
+            <li class="flex items-center gap-2"><span class="text-green-400">✓</span> SLA garantizado</li>
+          </ul>
+          <a href="#contacto" class="block text-center border border-gray-600 hover:border-white text-white font-semibold py-3 rounded-xl transition">Contactar ventas</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+  <footer id="contacto" class="bg-gray-900 border-t border-gray-800 pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="grid md:grid-cols-4 gap-10 mb-12">
+        <!-- Brand -->
+        <div class="md:col-span-1">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-9 h-9 rounded-xl gradient-card flex items-center justify-center text-white font-black text-sm">M</div>
+            <span class="text-xl font-bold">Mobi<span class="text-blue-400">TPV</span></span>
+          </div>
+          <p class="text-gray-400 text-sm leading-relaxed">Software TPV especializado para tiendas de telefonía móvil y centros de servicio técnico (SAT).</p>
+          <div class="flex items-center gap-3 mt-4">
+            <a href="#" class="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition text-xs">tw</a>
+            <a href="#" class="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition text-xs">in</a>
+          </div>
+        </div>
+        <!-- Producto -->
+        <div>
+          <h4 class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Producto</h4>
+          <ul class="space-y-2 text-gray-400 text-sm">
+            <li><a href="#caracteristicas" class="hover:text-white transition">Características</a></li>
+            <li><a href="#precios" class="hover:text-white transition">Precios</a></li>
+            <li><a href="#modulos" class="hover:text-white transition">Módulos</a></li>
+            <li><a href="auth/login.html?mode=register" class="hover:text-white transition">Prueba gratuita</a></li>
+          </ul>
+        </div>
+        <!-- Soporte -->
+        <div>
+          <h4 class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Soporte</h4>
+          <ul class="space-y-2 text-gray-400 text-sm">
+            <li><a href="#" class="hover:text-white transition">Documentación</a></li>
+            <li><a href="#" class="hover:text-white transition">Centro de ayuda</a></li>
+            <li><a href="#" class="hover:text-white transition">Estado del sistema</a></li>
+            <li><a href="#" class="hover:text-white transition">Contacto</a></li>
+          </ul>
+        </div>
+        <!-- Contacto -->
+        <div>
+          <h4 class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Contacto</h4>
+          <ul class="space-y-2 text-gray-400 text-sm">
+            <li class="flex items-center gap-2">📧 <a href="mailto:info@mobibsm.es" class="hover:text-white transition">info@mobitpv.es</a></li>
+            <li class="flex items-center gap-2">📞 <span>+34 614 158 395</span></li>
+            <li class="flex items-center gap-2">📍 <span>Barcelona, España</span></li>
+          </ul>
+        </div>
+      </div>
+      <!-- Bottom bar -->
+      <div class="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+        <p>© 2026 MobiTPV. Todos los derechos reservados.</p>
+        <div class="flex items-center gap-6">
+          <a href="#" class="hover:text-gray-300 transition">Política de Privacidad</a>
+          <a href="#" class="hover:text-gray-300 transition">Aviso Legal</a>
+          <a href="#" class="hover:text-gray-300 transition">Cookies</a>
+          <a href="#" class="hover:text-gray-300 transition">RGPD</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Smooth navbar color on scroll
+    const nav = document.querySelector('nav');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        nav.style.background = 'rgba(9,9,11,0.95)';
+      } else {
+        nav.style.background = 'rgba(255,255,255,0.05)';
+      }
+    });
+  </script>
+</body>
+</html>

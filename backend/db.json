@@ -1,0 +1,236 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "shop_name": "MobiTPV Demo Store",
+      "name": "Admin Demo",
+      "email": "admin@mobitpv.es",
+      "password": "$2a$10$fMXCl/VJKqKMWO2.zhzIueuzbemkqw/F3hi0hGypcdTn0VD4CZjli",
+      "role": "admin",
+      "plan": "pro",
+      "created_at": "2026-10-02T16:04:13.104Z"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "Samsung Galaxy A54 5G",
+      "sku": "SGA54",
+      "imei": "351234567890001",
+      "category": "phone",
+      "buy_price": 220,
+      "sell_price": 329,
+      "stock": 5,
+      "min_stock": 2,
+      "created_at": "2026-10-02T16:04:13.105Z"
+    },
+    {
+      "id": 2,
+      "name": "iPhone 13 128GB Reacondicionado",
+      "sku": "IP13128",
+      "imei": "352345678901002",
+      "category": "phone",
+      "buy_price": 380,
+      "sell_price": 549,
+      "stock": 3,
+      "min_stock": 1,
+      "created_at": "2026-10-02T16:04:13.105Z"
+    },
+    {
+      "id": 3,
+      "name": "Xiaomi Redmi Note 12",
+      "sku": "XRN12",
+      "imei": "353456789012003",
+      "category": "phone",
+      "buy_price": 110,
+      "sell_price": 189,
+      "stock": 8,
+      "min_stock": 2,
+      "created_at": "2026-10-02T16:04:13.105Z"
+    },
+    {
+      "id": 4,
+      "name": "Pantalla Samsung A54",
+      "sku": "PAN-A54",
+      "imei": "—",
+      "category": "spare",
+      "buy_price": 35,
+      "sell_price": 85,
+      "stock": 12,
+      "min_stock": 3,
+      "created_at": "2026-10-02T16:04:13.106Z"
+    },
+    {
+      "id": 5,
+      "name": "Batería iPhone 13",
+      "sku": "BAT-IP13",
+      "imei": "—",
+      "category": "spare",
+      "buy_price": 18,
+      "sell_price": 49,
+      "stock": 7,
+      "min_stock": 3,
+      "created_at": "2026-10-02T16:04:13.106Z"
+    },
+    {
+      "id": 6,
+      "name": "Funda Silicona iPhone 14",
+      "sku": "FUN-IP14",
+      "imei": "—",
+      "category": "accessory",
+      "buy_price": 4,
+      "sell_price": 14.99,
+      "stock": 30,
+      "min_stock": 5,
+      "created_at": "2026-10-02T16:04:13.106Z"
+    },
+    {
+      "id": 7,
+      "name": "Cargador USB-C 20W",
+      "sku": "CAR-20W",
+      "imei": "—",
+      "category": "accessory",
+      "buy_price": 8,
+      "sell_price": 22.99,
+      "stock": 2,
+      "min_stock": 3,
+      "created_at": "2026-10-02T16:04:13.106Z"
+    },
+    {
+      "id": 8,
+      "name": "Protector Cristal S23",
+      "sku": "PCT-S23",
+      "imei": "—",
+      "category": "accessory",
+      "buy_price": 2,
+      "sell_price": 9.99,
+      "stock": 0,
+      "min_stock": 5,
+      "created_at": "2026-10-02T16:04:13.107Z"
+    }
+  ],
+  "clients": [
+    {
+      "id": 1,
+      "name": "Carlos García",
+      "phone": "666111222",
+      "email": "carlos@email.com",
+      "dni": "12345678A",
+      "created_at": "2026-10-02T16:04:13.107Z"
+    },
+    {
+      "id": 2,
+      "name": "María López",
+      "phone": "677222333",
+      "email": "maria@email.com",
+      "dni": "23456789B",
+      "created_at": "2026-10-02T16:04:13.107Z"
+    },
+    {
+      "id": 3,
+      "name": "Pedro Sánchez",
+      "phone": "688333444",
+      "email": "pedro@email.com",
+      "dni": "34567890C",
+      "created_at": "2026-10-02T16:04:13.107Z"
+    },
+    {
+      "id": 4,
+      "name": "Ana Torres",
+      "phone": "699444555",
+      "email": "ana@email.com",
+      "dni": "45678901D",
+      "created_at": "2026-10-02T16:04:13.107Z"
+    },
+    {
+      "id": 5,
+      "name": "Luis Martín",
+      "phone": "611555666",
+      "email": "luis@email.com",
+      "dni": "56789012E",
+      "created_at": "2026-10-02T16:04:13.108Z"
+    }
+  ],
+  "sales": [],
+  "sat": [
+    {
+      "id": 1,
+      "sat_num": "SAT-001",
+      "client_name": "Carlos García",
+      "client_phone": "666111222",
+      "device_brand": "Samsung",
+      "device_model": "Galaxy S22",
+      "imei": "353000111222001",
+      "fault": "Pantalla rota",
+      "status": "pending",
+      "budget": 120,
+      "technician": "Carlos Técnico",
+      "priority": "normal",
+      "created_at": "2026-09-28T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "sat_num": "SAT-002",
+      "client_name": "María López",
+      "client_phone": "677222333",
+      "device_brand": "Apple",
+      "device_model": "iPhone 12",
+      "imei": "354000222333002",
+      "fault": "No carga batería",
+      "status": "workshop",
+      "budget": 80,
+      "technician": "María Reparaciones",
+      "priority": "high",
+      "created_at": "2026-09-29T11:00:00Z"
+    },
+    {
+      "id": 3,
+      "sat_num": "SAT-003",
+      "client_name": "Pedro Sánchez",
+      "client_phone": "688333444",
+      "device_brand": "Xiaomi",
+      "device_model": "Mi 11",
+      "imei": "355000333444003",
+      "fault": "No enciende",
+      "status": "ready",
+      "budget": 60,
+      "technician": "Carlos Técnico",
+      "priority": "urgent",
+      "created_at": "2026-09-27T09:00:00Z"
+    },
+    {
+      "id": 4,
+      "sat_num": "SAT-004",
+      "client_name": "Ana Torres",
+      "client_phone": "699444555",
+      "device_brand": "Huawei",
+      "device_model": "P40",
+      "imei": "356000444555004",
+      "fault": "Micrófono no funciona",
+      "status": "delivered",
+      "budget": 45,
+      "technician": "María Reparaciones",
+      "priority": "normal",
+      "created_at": "2026-09-25T14:00:00Z"
+    },
+    {
+      "id": 5,
+      "sat_num": "SAT-005",
+      "client_name": "Luis Martín",
+      "client_phone": "611555666",
+      "device_brand": "OPPO",
+      "device_model": "Find X3",
+      "imei": "357000555666005",
+      "fault": "WiFi intermitente",
+      "status": "pending",
+      "budget": 70,
+      "technician": "Sin asignar",
+      "priority": "normal",
+      "created_at": "2026-09-30T15:00:00Z"
+    }
+  ],
+  "counters": {
+    "ticket": 0,
+    "sat": 5
+  }
+}
